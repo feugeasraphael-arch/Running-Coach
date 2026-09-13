@@ -211,6 +211,74 @@ def get_wellness_trend(conn, days: int = 90) -> list[dict]:
     ]
 
 
+# Standard race distances (meters) we predict/report times for.
+_RACE_DISTANCES = [
+    ("5K", 5000.0),
+    ("10K", 10000.0),
+    ("Half Marathon", 21097.5),
+    ("Marathon", 42195.0),
+]
+_RIEGEL_EXPONENT = 1.06  # standard Riegel endurance-fatigue exponent
+
+
+def get_race_predictions(conn, days: int = 120) -> dict:
+    """Real recorded best time per standard distance (within +/-3%, "what you
+    actually ran"), plus a Riegel-formula prediction for every distance based
+    on your single best recent effort (the run with the fastest 5K-equivalent
+    pace) — the same method Strava/most race calculators use, not a model
+    fit to your data specifically.
+    """
+    start = (datetime.utcnow().date() - timedelta(days=days)).isoformat()
+    rows = conn.execute(
+        """SELECT name, start_time, distance_m, moving_time_s FROM activities
+           WHERE sport_type = 'run' AND start_time >= ? AND distance_m > 1000 AND moving_time_s > 0""",
+        (start,),
+    ).fetchall()
+
+    if not rows:
+        return {"reference": None, "predictions": [{"label": l, "distance_m": d, "real_time_s": None, "real_date": None, "predicted_time_s": None} for l, d in _RACE_DISTANCES]}
+
+    # Riegel extrapolation assumes the reference is itself a genuine
+    # sustained effort — a single fast 1km interval rep isn't representative
+    # of marathon-pace endurance, so it would skew every longer prediction
+    # wildly optimistic. Require a minimum distance for the reference only
+    # (short runs can still match/report as a "real" time for 5K etc. below).
+    ref_candidates = [r for r in rows if r["distance_m"] >= 2500] or rows
+
+    best_ref, best_5k_equiv = None, None
+    for r in ref_candidates:
+        equiv = r["moving_time_s"] * (5000.0 / r["distance_m"]) ** _RIEGEL_EXPONENT
+        if best_5k_equiv is None or equiv < best_5k_equiv:
+            best_5k_equiv, best_ref = equiv, r
+
+    reference = {
+        "name": best_ref["name"],
+        "date": best_ref["start_time"],
+        "distance_m": best_ref["distance_m"],
+        "time_s": best_ref["moving_time_s"],
+    }
+
+    predictions = []
+    for label, dist in _RACE_DISTANCES:
+        predicted_time_s = best_ref["moving_time_s"] * (dist / best_ref["distance_m"]) ** _RIEGEL_EXPONENT
+
+        candidates = [r for r in rows if abs(r["distance_m"] - dist) / dist <= 0.03]
+        real_time_s = real_date = None
+        if candidates:
+            best_real = min(candidates, key=lambda r: r["moving_time_s"])
+            real_time_s, real_date = best_real["moving_time_s"], best_real["start_time"]
+
+        predictions.append({
+            "label": label,
+            "distance_m": dist,
+            "real_time_s": real_time_s,
+            "real_date": real_date,
+            "predicted_time_s": round(predicted_time_s),
+        })
+
+    return {"reference": reference, "predictions": predictions}
+
+
 def get_coach_summary(conn) -> dict:
     """Everything a dashboard needs in one call: current load/recovery
     status plus a plain-English recommendation. Deliberately simple,

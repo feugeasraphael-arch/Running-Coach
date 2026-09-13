@@ -23,7 +23,12 @@ coach.py contract (verified against the actual implementation):
         each item: {date, resting_hr, hrv_ms, body_battery_high, body_battery_low,
                     training_readiness, vo2max, sleep_score, sleep_hours, stress_avg}
         only includes days actually present in `wellness` (not zero-filled)
+    get_race_predictions(conn, days: int) -> dict
+        {reference: {name, date, distance_m, time_s} | None,
+         predictions: [{label, distance_m, real_time_s, real_date, predicted_time_s}, ...]}
 """
+import subprocess
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -36,6 +41,8 @@ from db import get_connection
 from strava_client import get_access_token, get_activity_laps, get_activity_streams
 
 load_dotenv()
+
+PROJECT_DIR = Path(__file__).parent
 
 try:
     import coach
@@ -107,6 +114,51 @@ def recovery():
 @app.get("/api/wellness-trend")
 def wellness_trend(days: int = 90):
     return _call("get_wellness_trend", days)
+
+
+@app.get("/api/race-predictions")
+def race_predictions(days: int = 120):
+    return _call("get_race_predictions", days)
+
+
+@app.post("/api/sync")
+def trigger_sync():
+    """Runs both ingestion scripts synchronously (each is normally a
+    few-second incremental sync) and returns per-source pass/fail so the
+    "Update" button can report what happened without a background job queue."""
+    results = {}
+    for source, script in (("strava", "ingest_strava.py"), ("garmin", "ingest_garmin.py")):
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(PROJECT_DIR / script)],
+                cwd=str(PROJECT_DIR),
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            # stdout/stderr are captured as separate buffers, not interleaved
+            # chronologically, so concatenating them can put an unrelated
+            # stderr warning (e.g. urllib3's LibreSSL notice) after the
+            # script's real result line. Prefer stdout (where the actual
+            # summary is printed); fall back to stderr, filtered of known
+            # noise, only when stdout has nothing (typically a hard failure).
+            stdout_lines = [l for l in proc.stdout.strip().splitlines() if l]
+            stderr_lines = [
+                l for l in proc.stderr.strip().splitlines()
+                if l and "NotOpenSSLWarning" not in l and "warnings.warn" not in l
+            ]
+            if stdout_lines:
+                message = stdout_lines[-1]
+            elif stderr_lines:
+                message = stderr_lines[-1]
+            else:
+                message = ""
+            results[source] = {"ok": proc.returncode == 0, "message": message}
+        except subprocess.TimeoutExpired:
+            results[source] = {"ok": False, "message": "Timed out after 5 minutes."}
+        except Exception as exc:  # noqa: BLE001
+            results[source] = {"ok": False, "message": str(exc)}
+    return results
 
 
 @app.get("/api/coach-summary")

@@ -9,9 +9,15 @@
 </head>
 <body>
 <div class="wrap">
-    <div>
-        <h1>Run Coach</h1>
-        <div class="subtitle">Strava + Garmin, synced locally</div>
+    <div class="header-row">
+        <div>
+            <h1>Run Coach</h1>
+            <div class="subtitle">Strava + Garmin, synced locally</div>
+        </div>
+        <div class="header-actions">
+            <button id="update-btn" class="update-btn">Update</button>
+            <div id="update-status" class="update-status"></div>
+        </div>
     </div>
 
     <div id="banner" class="banner">
@@ -24,6 +30,7 @@
         <div class="card" id="acwr-card"><h2>Acute:chronic workload ratio</h2></div>
         <div class="card" id="recovery-card"><h2>Recovery</h2></div>
         <div class="card" id="wellness-trend-card"><h2>Sleep &amp; body battery</h2></div>
+        <div class="card" id="race-predictions-card"><h2>Race times</h2></div>
     </div>
 
     <div class="card" id="activities-card"><h2>Recent activities</h2></div>

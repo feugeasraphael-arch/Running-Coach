@@ -252,6 +252,37 @@ async function renderWellnessTrend() {
     });
 }
 
+async function renderRacePredictions() {
+    const container = document.getElementById("race-predictions-card");
+    const data = await fetchJSON("/api/race-predictions?days=120");
+    if (isNoData(data) || !data.predictions) {
+        return emptyState(container, "Not enough recent runs yet to predict race times.");
+    }
+    const items = data.predictions
+        .map((p) => {
+            const real = p.real_time_s != null
+                ? `<div class="race-real">${fmtDuration(p.real_time_s)}</div>`
+                : `<div class="race-real no-data">Not yet run</div>`;
+            const predicted = p.predicted_time_s != null
+                ? `<div class="race-predicted">predicted ${fmtDuration(p.predicted_time_s)}</div>`
+                : "";
+            return `<div class="race-item">
+                <div class="race-label">${p.label}</div>
+                ${real}
+                ${predicted}
+            </div>`;
+        })
+        .join("");
+
+    const ref = data.reference;
+    const refHtml = ref
+        ? `<div class="race-reference">Predictions based on your best recent effort: ${ref.name ?? "a run"}
+            (${fmtKm(ref.distance_m)} km in ${fmtDuration(ref.time_s)}, ${new Date(ref.date).toLocaleDateString()}).</div>`
+        : "";
+
+    container.innerHTML = `<div class="race-grid">${items}</div>${refHtml}`;
+}
+
 async function renderActivities() {
     const container = document.getElementById("activities-card");
     const data = await fetchJSON("/api/activities?limit=20");
@@ -432,14 +463,44 @@ function renderDetailCharts(streams) {
     });
 }
 
-function init() {
+function renderAll() {
     renderCoachSummary();
     renderWeeklyMileage();
     renderPaceTrend();
     renderAcwr();
     renderRecovery();
     renderWellnessTrend();
+    renderRacePredictions();
     renderActivities();
+}
+
+async function handleUpdateClick() {
+    const btn = document.getElementById("update-btn");
+    const status = document.getElementById("update-status");
+    btn.disabled = true;
+    btn.textContent = "Updating…";
+    status.textContent = "";
+
+    try {
+        const res = await fetch("/api/sync", { method: "POST" });
+        const result = await res.json();
+        const parts = Object.entries(result).map(
+            ([source, r]) => `${source}: ${r.ok ? "ok" : "failed"}${r.message ? ` (${r.message})` : ""}`
+        );
+        status.textContent = parts.join(" · ");
+    } catch (err) {
+        status.textContent = `Update failed: ${err}`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Update";
+        renderAll();
+    }
+}
+
+function init() {
+    renderAll();
+
+    document.getElementById("update-btn").addEventListener("click", handleUpdateClick);
 
     document.getElementById("detail-close").addEventListener("click", closeActivityDetail);
     document.getElementById("detail-overlay").addEventListener("click", (e) => {

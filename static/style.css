@@ -46,6 +46,40 @@ h1 {
     margin: 0 0 4px 0;
 }
 
+.header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.update-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.update-btn:hover { filter: brightness(1.08); }
+.update-btn:disabled { opacity: 0.6; cursor: default; }
+
+.update-status {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    max-width: 220px;
+}
+
 .subtitle {
     color: var(--text-dim);
     font-size: 0.85rem;
@@ -216,6 +250,38 @@ tr.activity-row:hover { background: var(--bg); }
     letter-spacing: 0.04em;
     color: var(--text-dim);
     margin: 20px 0 10px 0;
+}
+
+.race-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+}
+.race-item { text-align: center; }
+.race-item .race-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+}
+.race-item .race-real {
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+.race-item .race-real.no-data { color: var(--text-dim); font-size: 1.3rem; font-weight: 500; }
+.race-item .race-predicted {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+}
+.race-reference {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
 }
 
 .split-kind.work { color: var(--accent); font-weight: 600; }
