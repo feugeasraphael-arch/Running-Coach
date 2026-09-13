@@ -23,10 +23,19 @@
         <div class="card" id="pace-trend-card"><h2>Pace &amp; HR trend</h2></div>
         <div class="card" id="acwr-card"><h2>Acute:chronic workload ratio</h2></div>
         <div class="card" id="recovery-card"><h2>Recovery</h2></div>
+        <div class="card" id="wellness-trend-card"><h2>Sleep &amp; body battery</h2></div>
     </div>
 
     <div class="card" id="activities-card"><h2>Recent activities</h2></div>
 </div>
+
+<div id="detail-overlay" class="overlay" hidden>
+    <div class="detail-modal">
+        <button id="detail-close" class="detail-close" aria-label="Close">&times;</button>
+        <div id="detail-content"><div class="empty-state">Loading…</div></div>
+    </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

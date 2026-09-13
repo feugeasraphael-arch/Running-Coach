@@ -191,6 +191,67 @@ async function renderRecovery() {
     `;
 }
 
+async function renderWellnessTrend() {
+    const container = document.getElementById("wellness-trend-card");
+    const data = await fetchJSON("/api/wellness-trend?days=90");
+    if (isNoData(data) || !Array.isArray(data) || data.length === 0) {
+        return emptyState(container, "No Garmin wellness history yet.");
+    }
+    const canvas = document.createElement("canvas");
+    container.appendChild(canvas);
+    new Chart(canvas, {
+        type: "line",
+        data: {
+            labels: data.map((d) => d.date),
+            datasets: [
+                {
+                    label: "Sleep (hours)",
+                    data: data.map((d) => d.sleep_hours),
+                    borderColor: "#7c3aed",
+                    yAxisID: "hours",
+                    spanGaps: true,
+                    tension: 0.2,
+                },
+                {
+                    label: "Body battery (high)",
+                    data: data.map((d) => d.body_battery_high),
+                    borderColor: "#059669",
+                    yAxisID: "battery",
+                    spanGaps: true,
+                    tension: 0.2,
+                },
+                {
+                    label: "Body battery (low)",
+                    data: data.map((d) => d.body_battery_low),
+                    borderColor: "#059669",
+                    borderDash: [4, 4],
+                    yAxisID: "battery",
+                    spanGaps: true,
+                    tension: 0.2,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        afterBody: (items) => {
+                            const d = data[items[0].dataIndex];
+                            return d.stress_avg != null ? `Avg stress: ${Math.round(d.stress_avg)}` : "";
+                        },
+                    },
+                },
+            },
+            scales: {
+                hours: { type: "linear", position: "left", title: { display: true, text: "hours" } },
+                battery: { type: "linear", position: "right", min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: "body battery" } },
+            },
+        },
+    });
+}
+
 async function renderActivities() {
     const container = document.getElementById("activities-card");
     const data = await fetchJSON("/api/activities?limit=20");
@@ -199,7 +260,7 @@ async function renderActivities() {
     }
     const rows = data
         .map(
-            (a) => `<tr>
+            (a) => `<tr class="activity-row" data-id="${a.id}">
                 <td>${new Date(a.start_time).toLocaleDateString()}</td>
                 <td>${a.name ?? ""}</td>
                 <td>${a.sport_type ?? ""}</td>
@@ -217,6 +278,158 @@ async function renderActivities() {
                 <tbody>${rows}</tbody>
             </table>
         </div>`;
+    container.querySelectorAll("tr.activity-row").forEach((tr) => {
+        tr.addEventListener("click", () => openActivityDetail(tr.dataset.id));
+    });
+}
+
+function fmtDuration(sec) {
+    if (sec == null) return "–";
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = Math.round(sec % 60);
+    return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
+}
+
+let detailCharts = [];
+
+function closeActivityDetail() {
+    document.getElementById("detail-overlay").hidden = true;
+    detailCharts.forEach((c) => c.destroy());
+    detailCharts = [];
+}
+
+async function openActivityDetail(id) {
+    const overlay = document.getElementById("detail-overlay");
+    const content = document.getElementById("detail-content");
+    content.innerHTML = `<div class="empty-state">Loading…</div>`;
+    overlay.hidden = false;
+
+    const data = await fetchJSON(`/api/activities/${encodeURIComponent(id)}/detail`);
+    if (!data || !data.activity) {
+        content.innerHTML = `<div class="empty-state">${(data && data.detail) || "Couldn't load this activity."}</div>`;
+        return;
+    }
+
+    const a = data.activity;
+    const stats = [
+        ["Distance", `${fmtKm(a.distance_m)} km`],
+        ["Duration", fmtDuration(a.moving_time_s)],
+        ["Pace", fmtPace(a.avg_pace_s_per_km)],
+        ["Avg HR", a.avg_hr != null ? `${Math.round(a.avg_hr)} bpm` : "–"],
+        ["Max HR", a.max_hr != null ? `${Math.round(a.max_hr)} bpm` : "–"],
+        ["Elevation", a.elevation_gain_m != null ? `${Math.round(a.elevation_gain_m)} m` : "–"],
+        ["Cadence", a.avg_cadence != null ? Math.round(a.avg_cadence) : "–"],
+        ["Calories", a.calories != null ? Math.round(a.calories) : "–"],
+    ];
+
+    const commentaryHtml = (data.commentary || []).map((c) => `<li>${c}</li>`).join("");
+    const noteHtml = data.note ? `<div class="empty-state" style="padding:8px 0">${data.note}</div>` : "";
+
+    const splits = data.splits || [];
+    const hasKind = splits.some((s) => s.kind);
+    const splitsRows = splits
+        .map(
+            (s, i) => `<tr>
+                <td>${i + 1}</td>
+                ${hasKind ? `<td class="split-kind ${s.kind ?? ""}">${s.kind === "work" ? "Work" : s.kind === "recovery" ? "Recovery" : "–"}</td>` : ""}
+                <td>${(s.distance_m / 1000).toFixed(2)} km</td>
+                <td>${fmtDuration(s.time_s)}</td>
+                <td>${fmtPace(s.pace_s_per_km)}</td>
+                <td>${s.avg_hr != null ? Math.round(s.avg_hr) : "–"}</td>
+                <td>${s.elevation_gain_m != null ? Math.round(s.elevation_gain_m) : "–"}</td>
+            </tr>`
+        )
+        .join("");
+    const splitsHtml = splits.length
+        ? `<div class="detail-section-title">${hasKind ? "Detected intervals" : "Splits"}</div>
+           <div class="table-scroll"><table>
+               <thead><tr><th>#</th>${hasKind ? "<th>Type</th>" : ""}<th>Distance</th><th>Time</th><th>Pace</th><th>Avg HR</th><th>Elev +</th></tr></thead>
+               <tbody>${splitsRows}</tbody>
+           </table></div>`
+        : "";
+
+    content.innerHTML = `
+        <div class="detail-header">
+            <h2>${a.name ?? "Activity"}</h2>
+            <div class="subtitle">${new Date(a.start_time).toLocaleString()} · ${a.sport_type ?? ""} · ${a.source}</div>
+        </div>
+        <div class="detail-stats">
+            ${stats.map(([label, value]) => `<div class="stat"><div class="value">${value}</div><div class="label">${label}</div></div>`).join("")}
+        </div>
+        <div class="detail-section-title">Coach's notes</div>
+        <ul class="commentary-list">${commentaryHtml}</ul>
+        ${noteHtml}
+        <div id="detail-charts"></div>
+        ${splitsHtml}
+    `;
+
+    renderDetailCharts(data.streams || {});
+}
+
+function renderDetailCharts(streams) {
+    const container = document.getElementById("detail-charts");
+    const distanceKm = (streams.distance || []).map((d) => d / 1000);
+    if (!distanceKm.length) return;
+
+    const chartDefs = [
+        { key: "heartrate", label: "Heart rate (bpm)", color: "#dc2626" },
+        { key: "velocity_smooth", label: "Pace (min/km)", color: "#2563eb", transform: (v) => (v > 0 ? 1000 / v / 60 : null), reverse: true },
+        { key: "altitude", label: "Elevation (m)", color: "#059669" },
+    ];
+
+    chartDefs.forEach((def) => {
+        const raw = streams[def.key];
+        if (!raw || !raw.length) return;
+        const wrap = document.createElement("div");
+        wrap.style.marginBottom = "16px";
+        wrap.innerHTML = `<div class="detail-section-title">${def.label}</div>`;
+        const canvasWrap = document.createElement("div");
+        canvasWrap.style.height = "180px";
+        const canvas = document.createElement("canvas");
+        canvasWrap.appendChild(canvas);
+        wrap.appendChild(canvasWrap);
+        container.appendChild(wrap);
+
+        const values = def.transform ? raw.map(def.transform) : raw;
+        const points = distanceKm.map((x, i) => ({ x, y: values[i] })).filter((p) => p.y != null);
+
+        const yScale = { reverse: !!def.reverse };
+        if (def.key === "velocity_smooth") {
+            // Pace axis: clamp to a sane running-pace band (3-9 min/km) so a
+            // brief stop (traffic light, water stop) doesn't blow the scale
+            // out to 30+ min/km, but zoom in tighter than that band when the
+            // run's actual pace range is narrower (e.g. a fast tempo session).
+            const PACE_MIN = 3, PACE_MAX = 9;
+            const inBand = points.map((p) => p.y).filter((y) => y >= PACE_MIN && y <= PACE_MAX);
+            if (inBand.length) {
+                const pad = 0.2;
+                yScale.min = Math.max(PACE_MIN, Math.min(...inBand) - pad);
+                yScale.max = Math.min(PACE_MAX, Math.max(...inBand) + pad);
+            } else {
+                yScale.min = PACE_MIN;
+                yScale.max = PACE_MAX;
+            }
+        }
+
+        const chart = new Chart(canvas, {
+            type: "line",
+            data: {
+                datasets: [{ data: points, borderColor: def.color, pointRadius: 0, borderWidth: 1.5, tension: 0.15 }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { type: "linear", title: { display: true, text: "km" }, ticks: { maxTicksLimit: 8 } },
+                    y: yScale,
+                },
+            },
+        });
+        detailCharts.push(chart);
+    });
 }
 
 function init() {
@@ -225,7 +438,16 @@ function init() {
     renderPaceTrend();
     renderAcwr();
     renderRecovery();
+    renderWellnessTrend();
     renderActivities();
+
+    document.getElementById("detail-close").addEventListener("click", closeActivityDetail);
+    document.getElementById("detail-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "detail-overlay") closeActivityDetail();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeActivityDetail();
+    });
 }
 
 document.addEventListener("DOMContentLoaded", init);

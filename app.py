@@ -19,14 +19,23 @@ coach.py contract (verified against the actual implementation):
     get_coach_summary(conn) -> dict
         {acwr, recovery, recent_weekly_mileage, recent_pace_trend, recommendation}
         recommendation is a full sentence, not a short category label.
+    get_wellness_trend(conn, days: int) -> list[dict]
+        each item: {date, resting_hr, hrv_ms, body_battery_high, body_battery_low,
+                    training_readiness, vo2max, sleep_score, sleep_hours, stress_avg}
+        only includes days actually present in `wellness` (not zero-filled)
 """
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+import activity_insights
 from db import get_connection
+from strava_client import get_access_token, get_activity_laps, get_activity_streams
+
+load_dotenv()
 
 try:
     import coach
@@ -95,9 +104,69 @@ def recovery():
     return _call("get_recovery_status")
 
 
+@app.get("/api/wellness-trend")
+def wellness_trend(days: int = 90):
+    return _call("get_wellness_trend", days)
+
+
 @app.get("/api/coach-summary")
 def coach_summary():
     return _call("get_coach_summary")
+
+
+@app.get("/api/activities/{activity_id}/detail")
+def activity_detail(activity_id: str):
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM activities WHERE id = ?", (activity_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Activity not found")
+        activity = dict(row)
+
+        baseline_runs = []
+        if activity.get("sport_type") and activity.get("distance_m"):
+            lo, hi = activity["distance_m"] * 0.7, activity["distance_m"] * 1.3
+            baseline_rows = conn.execute(
+                """SELECT avg_pace_s_per_km, avg_hr, distance_m FROM activities
+                   WHERE sport_type = ? AND id != ? AND distance_m BETWEEN ? AND ?
+                   ORDER BY start_time DESC LIMIT 10""",
+                (activity["sport_type"], activity_id, lo, hi),
+            ).fetchall()
+            baseline_runs = [dict(r) for r in baseline_rows]
+    finally:
+        conn.close()
+
+    streams, splits, note = {}, [], None
+    if activity["source"] == "strava":
+        try:
+            token = get_access_token()
+            streams = get_activity_streams(token, activity["external_id"])
+            raw_laps = get_activity_laps(token, activity["external_id"])
+            if raw_laps and len(raw_laps) > 1:
+                # Real lap markers (manual or auto-lap) — Strava already
+                # computed each lap's own average HR, use those as-is.
+                splits = activity_insights.laps_to_splits(raw_laps)
+            else:
+                # No useful lap markers: try to detect actual work/recovery
+                # reps from the pace stream so interval HR isn't averaged
+                # across a fixed-km line that cuts through a rep boundary.
+                splits = activity_insights.detect_intervals(streams)
+                if not splits:
+                    splits = activity_insights.splits_from_streams(streams)
+        except Exception as exc:  # noqa: BLE001 - surface as a soft note, not a 500
+            note = f"Couldn't fetch full detail from Strava right now: {exc}"
+    else:
+        note = "Detailed streams aren't wired up for Garmin-sourced activities yet — showing summary stats only."
+
+    commentary = activity_insights.generate_commentary(activity, splits, baseline_runs)
+
+    return {
+        "activity": activity,
+        "streams": streams,
+        "splits": splits,
+        "commentary": commentary,
+        "note": note,
+    }
 
 
 static_dir = Path(__file__).parent / "static"

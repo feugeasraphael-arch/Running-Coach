@@ -183,6 +183,34 @@ def get_recovery_status(conn) -> dict:
     }
 
 
+def get_wellness_trend(conn, days: int = 90) -> list[dict]:
+    """Daily wellness history for charting (sleep, body battery, resting HR,
+    stress, HRV/readiness where available). Only returns days that actually
+    exist in `wellness` — callers should not assume a continuous series."""
+    start = (datetime.utcnow().date() - timedelta(days=days)).isoformat()
+    rows = conn.execute(
+        """SELECT date, resting_hr, hrv_ms, body_battery_high, body_battery_low,
+                  training_readiness, vo2max, sleep_score, sleep_duration_s, stress_avg
+           FROM wellness WHERE date >= ? ORDER BY date ASC""",
+        (start,),
+    ).fetchall()
+    return [
+        {
+            "date": r["date"],
+            "resting_hr": r["resting_hr"],
+            "hrv_ms": r["hrv_ms"],
+            "body_battery_high": r["body_battery_high"],
+            "body_battery_low": r["body_battery_low"],
+            "training_readiness": r["training_readiness"],
+            "vo2max": r["vo2max"],
+            "sleep_score": r["sleep_score"],
+            "sleep_hours": round(r["sleep_duration_s"] / 3600, 2) if r["sleep_duration_s"] else None,
+            "stress_avg": r["stress_avg"],
+        }
+        for r in rows
+    ]
+
+
 def get_coach_summary(conn) -> dict:
     """Everything a dashboard needs in one call: current load/recovery
     status plus a plain-English recommendation. Deliberately simple,

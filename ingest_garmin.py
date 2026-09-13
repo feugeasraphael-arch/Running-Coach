@@ -186,6 +186,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=DEFAULT_BACKFILL_DAYS,
                         help=f"Days to backfill on first run (default {DEFAULT_BACKFILL_DAYS})")
+    parser.add_argument("--since", type=str, default=None,
+                        help="Force backfill to start on this date (YYYY-MM-DD), "
+                             "overriding the stored sync cursor. Use for a one-off deeper backfill.")
     args = parser.parse_args()
 
     load_dotenv()
@@ -209,7 +212,12 @@ def main():
 
     conn = get_connection()
     cursor = get_sync_cursor(conn, "garmin")
-    start_day = date.fromisoformat(cursor) + timedelta(days=1) if cursor else date.today() - timedelta(days=args.days)
+    if args.since:
+        start_day = date.fromisoformat(args.since)
+    elif cursor:
+        start_day = date.fromisoformat(cursor) + timedelta(days=1)
+    else:
+        start_day = date.today() - timedelta(days=args.days)
     end_day = date.today()
 
     if start_day > end_day:
