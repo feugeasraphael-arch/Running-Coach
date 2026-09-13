@@ -26,6 +26,11 @@ coach.py contract (verified against the actual implementation):
     get_race_predictions(conn, days: int) -> dict
         {reference: {name, date, distance_m, time_s} | None,
          predictions: [{label, distance_m, real_time_s, real_date, predicted_time_s}, ...]}
+    get_plan_status(conn, weeks_back: int, weeks_forward: int) -> dict
+        {days: [{date, workout_type, title, planned_distance_km, pace_target, hr_target,
+                 notes, status, actual_distance_km, actual_avg_hr}, ...],
+         adherence_rate, completed, partial, missed, next_workout, advice}
+        status in {completed, partial, missed, upcoming}
 """
 import subprocess
 import sys
@@ -121,13 +126,24 @@ def race_predictions(days: int = 120):
     return _call("get_race_predictions", days)
 
 
+@app.get("/api/plan-status")
+def plan_status(weeks_back: int = 8, weeks_forward: int = 3):
+    return _call("get_plan_status", weeks_back, weeks_forward)
+
+
 @app.post("/api/sync")
 def trigger_sync():
-    """Runs both ingestion scripts synchronously (each is normally a
-    few-second incremental sync) and returns per-source pass/fail so the
-    "Update" button can report what happened without a background job queue."""
+    """Runs both ingestion scripts plus a training-plan reload synchronously
+    (each is normally a few-second incremental sync) and returns per-source
+    pass/fail so the "Update" button can report what happened without a
+    background job queue.
+
+    The "plan" leg reloads plan_data.json (Claude's periodic export of the
+    Google Calendar training plan — see load_plan.py's docstring for why
+    this isn't a live Calendar API call) and recomputes plan status against
+    whatever activities were just synced above."""
     results = {}
-    for source, script in (("strava", "ingest_strava.py"), ("garmin", "ingest_garmin.py")):
+    for source, script in (("strava", "ingest_strava.py"), ("garmin", "ingest_garmin.py"), ("plan", "load_plan.py")):
         try:
             proc = subprocess.run(
                 [sys.executable, str(PROJECT_DIR / script)],

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Training Plan</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="wrap">
+    <div class="header-row">
+        <div>
+            <h1>Training Plan</h1>
+            <div class="subtitle"><a href="index.html" class="nav-link">← Dashboard</a></div>
+        </div>
+        <div class="header-actions">
+            <button id="update-btn" class="update-btn">Update</button>
+            <div id="update-status" class="update-status"></div>
+        </div>
+    </div>
+
+    <div id="advice-banner" class="banner">
+        <div class="headline">Loading…</div>
+    </div>
+
+    <div class="card" id="adherence-card"><h2>Adherence (last 8 weeks)</h2></div>
+
+    <div class="card" id="plan-timeline-card"><h2>Sessions</h2></div>
+</div>
+<script src="plan.js"></script>
+</body>
+</html>

@@ -86,6 +86,13 @@ h1 {
     margin-bottom: 8px;
 }
 
+.nav-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+}
+.nav-link:hover { text-decoration: underline; }
+
 .banner {
     border-radius: 12px;
     padding: 16px 20px;
@@ -283,6 +290,19 @@ tr.activity-row:hover { background: var(--bg); }
     padding-top: 12px;
     border-top: 1px solid var(--border);
 }
+
+.status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.status-badge.status-completed { background: color-mix(in srgb, var(--good) 20%, transparent); color: var(--good); }
+.status-badge.status-partial { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.status-badge.status-missed { background: color-mix(in srgb, var(--bad) 20%, transparent); color: var(--bad); }
+.status-badge.status-upcoming { background: var(--bg); color: var(--text-dim); }
 
 .split-kind.work { color: var(--accent); font-weight: 600; }
 .split-kind.recovery { color: var(--text-dim); }

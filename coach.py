@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import statistics
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 
 def _parse_dt(s: str) -> datetime:
@@ -189,7 +189,7 @@ def get_wellness_trend(conn, days: int = 90) -> list[dict]:
     exist in `wellness` — callers should not assume a continuous series."""
     start = (datetime.utcnow().date() - timedelta(days=days)).isoformat()
     rows = conn.execute(
-        """SELECT date, resting_hr, hrv_ms, body_battery_high, body_battery_low,
+        """SELECT date, resting_hr, avg_hr_day, max_hr_day, hrv_ms, body_battery_high, body_battery_low,
                   training_readiness, vo2max, sleep_score, sleep_duration_s, stress_avg
            FROM wellness WHERE date >= ? ORDER BY date ASC""",
         (start,),
@@ -198,6 +198,8 @@ def get_wellness_trend(conn, days: int = 90) -> list[dict]:
         {
             "date": r["date"],
             "resting_hr": r["resting_hr"],
+            "avg_hr_day": r["avg_hr_day"],
+            "max_hr_day": r["max_hr_day"],
             "hrv_ms": r["hrv_ms"],
             "body_battery_high": r["body_battery_high"],
             "body_battery_low": r["body_battery_low"],
@@ -277,6 +279,106 @@ def get_race_predictions(conn, days: int = 120) -> dict:
         })
 
     return {"reference": reference, "predictions": predictions}
+
+
+def get_plan_status(conn, weeks_back: int = 8, weeks_forward: int = 3) -> dict:
+    """Compares the training plan (planned_workouts, loaded from the Google
+    Calendar export) against what was actually run, and gives advice for the
+    next planned session using current ACWR/recovery state.
+    """
+    today = datetime.utcnow().date()
+    start = (today - timedelta(weeks=weeks_back)).isoformat()
+    end = (today + timedelta(weeks=weeks_forward)).isoformat()
+
+    planned_rows = conn.execute(
+        """SELECT date, workout_type, title, planned_distance_km, pace_target, hr_target, notes
+           FROM planned_workouts WHERE date >= ? AND date <= ? ORDER BY date ASC""",
+        (start, end),
+    ).fetchall()
+    if not planned_rows:
+        return {
+            "days": [],
+            "adherence_rate": None,
+            "next_workout": None,
+            "advice": "No training plan loaded yet.",
+        }
+
+    activity_rows = conn.execute(
+        """SELECT substr(start_time, 1, 10) AS day, distance_m, moving_time_s, avg_pace_s_per_km, avg_hr
+           FROM activities WHERE sport_type = 'run' AND start_time >= ? AND start_time <= ?""",
+        (start, end + "T23:59:59Z"),
+    ).fetchall()
+    activities_by_day: dict[str, list] = {}
+    for r in activity_rows:
+        activities_by_day.setdefault(r["day"], []).append(r)
+
+    days = []
+    completed = partial = missed = 0
+    next_workout = None
+    for p in planned_rows:
+        day = p["date"]
+        day_date = date.fromisoformat(day)
+        acts = activities_by_day.get(day, [])
+        total_km = sum((a["distance_m"] or 0) for a in acts) / 1000
+
+        if day_date > today:
+            status = "upcoming"
+            if next_workout is None:
+                next_workout = dict(p)
+        elif not acts:
+            status = "missed"
+            missed += 1
+        elif p["planned_distance_km"] and total_km < p["planned_distance_km"] * 0.6:
+            status = "partial"
+            partial += 1
+        else:
+            status = "completed"
+            completed += 1
+
+        days.append({
+            "date": day,
+            "workout_type": p["workout_type"],
+            "title": p["title"],
+            "planned_distance_km": p["planned_distance_km"],
+            "pace_target": p["pace_target"],
+            "hr_target": p["hr_target"],
+            "notes": p["notes"],
+            "status": status,
+            "actual_distance_km": round(total_km, 1) if acts else None,
+            "actual_avg_hr": round(statistics.mean([a["avg_hr"] for a in acts if a["avg_hr"]]), 1)
+                if any(a["avg_hr"] for a in acts) else None,
+        })
+
+    tracked = completed + partial + missed
+    adherence_rate = round(completed / tracked, 2) if tracked else None
+
+    advice = "No upcoming session in the plan."
+    if next_workout:
+        acwr = compute_acwr(conn)
+        recovery = get_recovery_status(conn)
+        when = date.fromisoformat(next_workout["date"])
+        day_label = "today" if when == today else "tomorrow" if when == today + timedelta(days=1) else when.strftime("%A %d/%m")
+        target = next_workout["pace_target"] or (f"{next_workout['planned_distance_km']}km" if next_workout["planned_distance_km"] else "")
+        base = f"Next up: {next_workout['title']} ({day_label})" + (f" at {target}" if target else "") + "."
+
+        if next_workout["workout_type"] in ("interval", "benchmark") and (
+            acwr["flag"] in ("caution", "high_injury_risk") or recovery["status"] == "fatigued"
+        ):
+            advice = base + " Your load/recovery signals are down right now — consider easing the target pace slightly or extending recovery jogs rather than forcing the prescribed numbers."
+        elif next_workout["workout_type"] in ("interval", "benchmark"):
+            advice = base + " Recovery and training load look fine — you're set up to hit this one as prescribed."
+        else:
+            advice = base + " It's an easy/long day — keep it conversational regardless of how the harder sessions have felt."
+
+    return {
+        "days": days,
+        "adherence_rate": adherence_rate,
+        "completed": completed,
+        "partial": partial,
+        "missed": missed,
+        "next_workout": next_workout,
+        "advice": advice,
+    }
 
 
 def get_coach_summary(conn) -> dict:

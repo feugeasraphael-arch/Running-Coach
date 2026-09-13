@@ -40,7 +40,7 @@ def upsert_activity(conn: sqlite3.Connection, activity: dict) -> None:
 def upsert_wellness(conn: sqlite3.Connection, day: dict) -> None:
     """day must match the `wellness` table columns (raw_json as a JSON string)."""
     columns = [
-        "date", "resting_hr", "hrv_ms", "body_battery_high", "body_battery_low",
+        "date", "resting_hr", "avg_hr_day", "max_hr_day", "hrv_ms", "body_battery_high", "body_battery_low",
         "training_readiness", "training_status", "vo2max", "sleep_score",
         "sleep_duration_s", "stress_avg", "raw_json",
     ]

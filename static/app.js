@@ -193,7 +193,7 @@ async function renderRecovery() {
 
 async function renderWellnessTrend() {
     const container = document.getElementById("wellness-trend-card");
-    const data = await fetchJSON("/api/wellness-trend?days=90");
+    const data = await fetchJSON("/api/wellness-trend?days=400");
     if (isNoData(data) || !Array.isArray(data) || data.length === 0) {
         return emptyState(container, "No Garmin wellness history yet.");
     }
@@ -247,6 +247,51 @@ async function renderWellnessTrend() {
             scales: {
                 hours: { type: "linear", position: "left", title: { display: true, text: "hours" } },
                 battery: { type: "linear", position: "right", min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: "body battery" } },
+            },
+        },
+    });
+}
+
+async function renderHeartRateTrend() {
+    const container = document.getElementById("heart-rate-trend-card");
+    const data = await fetchJSON("/api/wellness-trend?days=400");
+    if (isNoData(data) || !Array.isArray(data) || data.length === 0) {
+        return emptyState(container, "No Garmin heart-rate history yet.");
+    }
+    const hasAny = data.some((d) => d.resting_hr != null || d.avg_hr_day != null);
+    if (!hasAny) {
+        return emptyState(container, "No resting/average heart-rate history yet.");
+    }
+    const canvas = document.createElement("canvas");
+    container.appendChild(canvas);
+    new Chart(canvas, {
+        type: "line",
+        data: {
+            labels: data.map((d) => d.date),
+            datasets: [
+                {
+                    label: "Resting HR",
+                    data: data.map((d) => d.resting_hr),
+                    borderColor: "#dc2626",
+                    spanGaps: true,
+                    pointRadius: 0,
+                    tension: 0.2,
+                },
+                {
+                    label: "Average HR (24h)",
+                    data: data.map((d) => d.avg_hr_day),
+                    borderColor: "#2563eb",
+                    spanGaps: true,
+                    pointRadius: 0,
+                    tension: 0.2,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: "index", intersect: false },
+            scales: {
+                y: { title: { display: true, text: "bpm" } },
             },
         },
     });
@@ -470,6 +515,7 @@ function renderAll() {
     renderAcwr();
     renderRecovery();
     renderWellnessTrend();
+    renderHeartRateTrend();
     renderRacePredictions();
     renderActivities();
 }

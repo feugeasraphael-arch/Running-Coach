@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import statistics
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -72,6 +73,16 @@ def fetch_wellness_day(client, day: date) -> Optional[dict]:
     rhr_resp = _safe(client.get_rhr_day, d)
     resting_hr = _dig(rhr_resp, "allMetrics", "metricsMap", "WELLNESS_RESTING_HEART_RATE", 0, "value")
 
+    hr_day_resp = _safe(client.get_heart_rates, d)
+    avg_hr_day = max_hr_day = None
+    if isinstance(hr_day_resp, dict):
+        if resting_hr is None:
+            resting_hr = hr_day_resp.get("restingHeartRate")
+        max_hr_day = hr_day_resp.get("maxHeartRate")
+        samples = [v[1] for v in (hr_day_resp.get("heartRateValues") or []) if v and v[1]]
+        if samples:
+            avg_hr_day = round(statistics.mean(samples), 1)
+
     hrv_resp = _safe(client.get_hrv_data, d)
     hrv_ms = _dig(hrv_resp, "hrvSummary", "lastNightAvg") if isinstance(hrv_resp, dict) else None
 
@@ -115,6 +126,8 @@ def fetch_wellness_day(client, day: date) -> Optional[dict]:
     row = {
         "date": d,
         "resting_hr": resting_hr,
+        "avg_hr_day": avg_hr_day,
+        "max_hr_day": max_hr_day,
         "hrv_ms": hrv_ms,
         "body_battery_high": body_battery_high,
         "body_battery_low": body_battery_low,
@@ -129,8 +142,15 @@ def fetch_wellness_day(client, day: date) -> Optional[dict]:
     if all(v is None for k, v in row.items() if k != "date"):
         return None  # nothing at all for this day — don't clutter the table
 
+    # Exclude heartRateValues (720 samples/day) from the stored payload —
+    # we've already reduced it to avg/max above; keeping the raw series for
+    # every backfilled day would bloat the DB for no benefit.
+    hr_day_summary = (
+        {k: v for k, v in hr_day_resp.items() if k != "heartRateValues"}
+        if isinstance(hr_day_resp, dict) else hr_day_resp
+    )
     row["raw_json"] = json.dumps({
-        "rhr": rhr_resp, "hrv": hrv_resp, "body_battery": bb_resp,
+        "rhr": rhr_resp, "heart_rate_day": hr_day_summary, "hrv": hrv_resp, "body_battery": bb_resp,
         "training_readiness": tr_resp, "training_status": ts_resp,
         "sleep": sleep_resp, "stress": stress_resp,
     })
@@ -224,6 +244,10 @@ def main():
         print("Already up to date.")
         return
 
+    # Commit after every day (not just once at the end): a large historical
+    # backfill can span hundreds of days and take a long time, and without
+    # incremental commits a crash/rate-limit partway through would lose all
+    # progress made so far.
     wellness_written = 0
     day = start_day
     while day <= end_day:
@@ -231,6 +255,8 @@ def main():
         if row:
             upsert_wellness(conn, row)
             wellness_written += 1
+        set_sync_cursor(conn, "garmin", day.isoformat())
+        conn.commit()
         day += timedelta(days=1)
 
     activity_rows, skipped_running = fetch_non_running_activities(client, start_day, end_day)

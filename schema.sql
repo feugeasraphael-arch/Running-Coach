@@ -34,6 +34,8 @@ CREATE INDEX IF NOT EXISTS idx_activities_sport_type ON activities (sport_type);
 CREATE TABLE IF NOT EXISTS wellness (
     date                    TEXT PRIMARY KEY,   -- 'YYYY-MM-DD', local calendar date
     resting_hr              REAL,
+    avg_hr_day              REAL,               -- mean of the day's continuous HR samples (not resting, not a workout)
+    max_hr_day               REAL,
     hrv_ms                  REAL,
     body_battery_high       REAL,
     body_battery_low        REAL,
@@ -45,6 +47,21 @@ CREATE TABLE IF NOT EXISTS wellness (
     stress_avg              REAL,
     raw_json                TEXT,
     created_at              TEXT DEFAULT (datetime('now'))
+);
+
+-- Training plan snapshot, sourced from Google Calendar (feugeasraphael@gmail.com).
+-- Loaded via load_plan.py from plan_data.json -- there's no live Calendar API
+-- access from this app, so the plan is periodically re-exported by Claude
+-- rather than fetched on demand (see /api/sync's "plan" leg).
+CREATE TABLE IF NOT EXISTS planned_workouts (
+    date                TEXT PRIMARY KEY,   -- 'YYYY-MM-DD'
+    workout_type        TEXT,               -- 'easy' | 'long' | 'interval' | 'benchmark'
+    title               TEXT,
+    planned_distance_km REAL,
+    pace_target         TEXT,                -- free text, e.g. "4'35-4'45/km"
+    hr_target           TEXT,                -- free text, e.g. "140-160 bpm"
+    notes               TEXT,
+    synced_at           TEXT DEFAULT (datetime('now'))
 );
 
 -- Tracks incremental sync progress per source so re-runs don't re-fetch everything.
