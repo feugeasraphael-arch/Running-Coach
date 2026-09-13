@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Run Coach</title>
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+    <div>
+        <h1>Run Coach</h1>
+        <div class="subtitle">Strava + Garmin, synced locally</div>
+    </div>
+
+    <div id="banner" class="banner">
+        <div class="headline">Loading…</div>
+    </div>
+
+    <div class="grid">
+        <div class="card" id="weekly-mileage-card"><h2>Weekly mileage</h2></div>
+        <div class="card" id="pace-trend-card"><h2>Pace &amp; HR trend</h2></div>
+        <div class="card" id="acwr-card"><h2>Acute:chronic workload ratio</h2></div>
+        <div class="card" id="recovery-card"><h2>Recovery</h2></div>
+    </div>
+
+    <div class="card" id="activities-card"><h2>Recent activities</h2></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

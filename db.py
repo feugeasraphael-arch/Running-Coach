@@ -2,6 +2,8 @@
 opening sqlite3 directly, so there's one place that knows the DB path and
 applies schema.sql.
 """
+from __future__ import annotations
+
 import os
 import sqlite3
 from pathlib import Path
