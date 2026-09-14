@@ -133,6 +133,97 @@ def get_pace_trend(conn, weeks: int = 12) -> list[dict]:
     return result
 
 
+# Below this cadence (steps/min), overstriding and higher impact loading
+# become more likely -- a widely cited running-form heuristic, not something
+# fit to this athlete's biomechanics, so treat it as a nudge to look closer
+# rather than a diagnosis. Same spirit as the ACWR thresholds above.
+_LOW_CADENCE_SPM = 160
+_GOOD_CADENCE_SPM = 172
+
+
+def get_cadence_trend(conn, weeks: int = 12) -> dict:
+    """Weekly average running cadence, plus a rule-of-thumb flag on the most
+    recent weeks with data (see _LOW_CADENCE_SPM)."""
+    rows = conn.execute(
+        "SELECT start_time, avg_cadence FROM activities WHERE sport_type = 'run' AND avg_cadence IS NOT NULL"
+    ).fetchall()
+
+    by_week = defaultdict(list)
+    for row in rows:
+        key = _iso_week_start(_parse_dt(row["start_time"])).isoformat()
+        by_week[key].append(row["avg_cadence"])
+
+    current_week_start = _iso_week_start(datetime.utcnow().date())
+    weekly = []
+    for i in range(weeks - 1, -1, -1):
+        key = (current_week_start - timedelta(weeks=i)).isoformat()
+        vals = by_week.get(key)
+        weekly.append({
+            "week_start": key,
+            "avg_cadence": round(statistics.mean(vals), 1) if vals else None,
+        })
+
+    recent = [w["avg_cadence"] for w in weekly[-4:] if w["avg_cadence"] is not None]
+    if not recent:
+        flag = "no_data"
+    else:
+        recent_avg = statistics.mean(recent)
+        if recent_avg < _LOW_CADENCE_SPM:
+            flag = "low"
+        elif recent_avg < _GOOD_CADENCE_SPM:
+            flag = "moderate"
+        else:
+            flag = "good"
+
+    return {
+        "weekly": weekly,
+        "recent_avg_cadence": round(statistics.mean(recent), 1) if recent else None,
+        "flag": flag,
+    }
+
+
+# Rule-of-thumb running-shoe lifespan before midsole cushioning degrades
+# enough to raise injury risk. Commonly cited range is ~500-800km; treated
+# here as an escalating flag rather than a hard cutoff since actual lifespan
+# depends heavily on shoe model, runner weight, and surface.
+_GEAR_MONITOR_KM = 500
+_GEAR_REPLACE_SOON_KM = 650
+_GEAR_OVERDUE_KM = 800
+
+
+def get_gear_status(conn) -> dict:
+    """Strava shoe/bike mileage vs. the rule-of-thumb thresholds above.
+    distance_m is Strava's own lifetime total for the gear item, which can
+    include mileage the athlete manually back-logged when first adding it,
+    not just what run-coach has ingested since."""
+    rows = conn.execute(
+        "SELECT id, name, distance_m, retired FROM gear ORDER BY distance_m DESC"
+    ).fetchall()
+    if not rows:
+        return {"gear": [], "alert": None}
+
+    gear = []
+    alert = None
+    for r in rows:
+        km = round((r["distance_m"] or 0) / 1000, 1)
+        if r["retired"]:
+            flag = "retired"
+        elif km >= _GEAR_OVERDUE_KM:
+            flag = "overdue"
+        elif km >= _GEAR_REPLACE_SOON_KM:
+            flag = "replace_soon"
+        elif km >= _GEAR_MONITOR_KM:
+            flag = "monitor"
+        else:
+            flag = "ok"
+        gear.append({"id": r["id"], "name": r["name"], "distance_km": km, "flag": flag})
+        if alert is None and flag in ("overdue", "replace_soon"):
+            verb = "is overdue for replacement" if flag == "overdue" else "should be replaced soon"
+            alert = f"{r['name']} {verb} ({km}km)."
+
+    return {"gear": gear, "alert": alert}
+
+
 def get_recovery_status(conn) -> dict:
     """Latest wellness reading vs. the trailing 7-day average of prior days."""
     rows = conn.execute("SELECT * FROM wellness ORDER BY date DESC LIMIT 8").fetchall()
@@ -390,6 +481,8 @@ def get_coach_summary(conn) -> dict:
     recovery = get_recovery_status(conn)
     weekly = get_weekly_mileage(conn, weeks=4)
     pace_trend = get_pace_trend(conn, weeks=4)
+    cadence = get_cadence_trend(conn, weeks=4)
+    gear = get_gear_status(conn)
 
     if acwr["flag"] == "no_data":
         recommendation = "Not enough training history yet to make a call — sync a few weeks of activities first."
@@ -414,11 +507,16 @@ def get_coach_summary(conn) -> dict:
     else:
         recommendation = "Keep monitoring — mixed signals this week."
 
+    if gear["alert"]:
+        recommendation += f" Also: {gear['alert']}"
+
     return {
         "acwr": acwr,
         "recovery": recovery,
         "recent_weekly_mileage": weekly,
         "recent_pace_trend": pace_trend,
+        "cadence": cadence,
+        "gear": gear,
         "recommendation": recommendation,
     }
 

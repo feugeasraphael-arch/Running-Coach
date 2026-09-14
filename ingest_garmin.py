@@ -119,6 +119,22 @@ def fetch_wellness_day(client, day: date) -> Optional[dict]:
     sleep_duration_s = sleep_dto.get("sleepTimeSeconds")
     sleep_score = _dig(sleep_resp, "sleepScores", "overall", "value") or \
         _dig(sleep_dto, "sleepScores", "overall", "value")
+    sleep_deep_s = sleep_dto.get("deepSleepSeconds")
+    sleep_light_s = sleep_dto.get("lightSleepSeconds")
+    sleep_rem_s = sleep_dto.get("remSleepSeconds")
+    sleep_awake_s = sleep_dto.get("awakeSleepSeconds")
+    sleep_avg_respiration = sleep_dto.get("averageRespirationValue")
+
+    def _avg_sleep_series(key: str) -> Optional[float]:
+        # sleepHeartRate / sleepStress are [{"value": v, "startGMT": ms}, ...];
+        # stress can report -1 for "no data" samples, which would otherwise
+        # drag the average down.
+        series = sleep_resp.get(key) if isinstance(sleep_resp, dict) else None
+        vals = [p["value"] for p in (series or []) if isinstance(p, dict) and (p.get("value") or 0) > 0]
+        return round(statistics.mean(vals), 1) if vals else None
+
+    sleep_avg_hr = _avg_sleep_series("sleepHeartRate")
+    sleep_avg_stress = _avg_sleep_series("sleepStress")
 
     stress_resp = _safe(client.get_stress_data, d)
     stress_avg = stress_resp.get("avgStressLevel") if isinstance(stress_resp, dict) else None
@@ -136,6 +152,13 @@ def fetch_wellness_day(client, day: date) -> Optional[dict]:
         "vo2max": vo2max,
         "sleep_score": sleep_score,
         "sleep_duration_s": sleep_duration_s,
+        "sleep_deep_s": sleep_deep_s,
+        "sleep_light_s": sleep_light_s,
+        "sleep_rem_s": sleep_rem_s,
+        "sleep_awake_s": sleep_awake_s,
+        "sleep_avg_respiration": sleep_avg_respiration,
+        "sleep_avg_hr": sleep_avg_hr,
+        "sleep_avg_stress": sleep_avg_stress,
         "stress_avg": stress_avg,
     }
 

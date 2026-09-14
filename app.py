@@ -17,8 +17,15 @@ coach.py contract (verified against the actual implementation):
          prior_7d_avg_training_readiness, prior_7d_avg_body_battery_high, prior_7d_avg_hrv_ms}
         status in {no_data, well_recovered, fatigued, normal}
     get_coach_summary(conn) -> dict
-        {acwr, recovery, recent_weekly_mileage, recent_pace_trend, recommendation}
+        {acwr, recovery, recent_weekly_mileage, recent_pace_trend, cadence, gear, recommendation}
         recommendation is a full sentence, not a short category label.
+    get_cadence_trend(conn, weeks: int) -> dict
+        {weekly: [{week_start, avg_cadence}, ...], recent_avg_cadence, flag}
+        flag in {no_data, low, moderate, good} -- rule-of-thumb, see coach.py
+    get_gear_status(conn) -> dict
+        {gear: [{id, name, distance_km, flag}, ...], alert}
+        flag in {ok, monitor, replace_soon, overdue, retired}; alert is a
+        sentence for the most urgent non-retired shoe, or None
     get_wellness_trend(conn, days: int) -> list[dict]
         each item: {date, resting_hr, hrv_ms, body_battery_high, body_battery_low,
                     training_readiness, vo2max, sleep_score, sleep_hours, stress_avg}
@@ -31,15 +38,36 @@ coach.py contract (verified against the actual implementation):
                  notes, status, actual_distance_km, actual_avg_hr}, ...],
          adherence_rate, completed, partial, missed, next_workout, advice}
         status in {completed, partial, missed, upcoming}
+
+cook.py contract:
+    get_meal_plan(conn, days: int) -> list[dict]
+        each item: {date, day_label, workout_type, is_hard_day,
+                     meals: [{meal_type, id, name, tags, prep_time_min,
+                              ingredients, steps, macros, est_cost_eur, tip}, ...]}
+        meal_type order is breakfast, lunch, snack, dinner; rolling from today
+    get_shopping_list(conn, days: int) -> dict
+        {days, total_estimated_cost_eur, distinct_recipes,
+         categories: [{category, items: [{item, quantity, used_in}, ...]}, ...]}
+        categories ordered by grocery aisle; quantities summed where units
+        match, otherwise listed as-is (see cook.py's _parse_qty docstring)
+    get_recipe_ratings(conn) -> dict[str, str]
+        {recipe_id: "like" | "dislike"}; a recipe with no opinion is simply absent
+    set_recipe_rating(conn, recipe_id: str, rating: str | None) -> None
+        rating is "like", "dislike", or None to clear back to neutral
+    get_all_recipes(conn) -> list[dict]
+        every recipe in the library (not just the rolling window), each
+        the full recipe dict plus a "rating" key ("like" | "dislike" | None)
 """
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 import activity_insights
 from db import get_connection
@@ -53,6 +81,11 @@ try:
     import coach
 except ImportError:
     coach = None
+
+try:
+    import cook
+except ImportError:
+    cook = None
 
 app = FastAPI(title="run-coach")
 
@@ -126,6 +159,16 @@ def race_predictions(days: int = 120):
     return _call("get_race_predictions", days)
 
 
+@app.get("/api/cadence-trend")
+def cadence_trend(weeks: int = 12):
+    return _call("get_cadence_trend", weeks)
+
+
+@app.get("/api/gear")
+def gear_status():
+    return _call("get_gear_status")
+
+
 @app.get("/api/plan-status")
 def plan_status(weeks_back: int = 8, weeks_forward: int = 3):
     return _call("get_plan_status", weeks_back, weeks_forward)
@@ -180,6 +223,86 @@ def trigger_sync():
 @app.get("/api/coach-summary")
 def coach_summary():
     return _call("get_coach_summary")
+
+
+@app.get("/api/meal-plan")
+def meal_plan(days: int = 7):
+    if cook is None:
+        return _no_data("cook.py not available yet")
+    conn = get_connection()
+    try:
+        result = cook.get_meal_plan(conn, days)
+        if not result:
+            return _no_data()
+        return result
+    except Exception as exc:  # noqa: BLE001 - see _call's docstring for why this is broad
+        return _no_data(str(exc))
+    finally:
+        conn.close()
+
+
+@app.get("/api/shopping-list")
+def shopping_list(days: int = 7):
+    if cook is None:
+        return _no_data("cook.py not available yet")
+    conn = get_connection()
+    try:
+        result = cook.get_shopping_list(conn, days)
+        if not result or not result.get("categories"):
+            return _no_data()
+        return result
+    except Exception as exc:  # noqa: BLE001 - see _call's docstring for why this is broad
+        return _no_data(str(exc))
+    finally:
+        conn.close()
+
+
+class RecipeRatingIn(BaseModel):
+    recipe_id: str
+    rating: Optional[str] = None  # "like" | "dislike" | None to clear
+
+
+@app.get("/api/recipe-ratings")
+def recipe_ratings():
+    if cook is None:
+        return _no_data("cook.py not available yet")
+    conn = get_connection()
+    try:
+        return cook.get_recipe_ratings(conn)
+    except Exception as exc:  # noqa: BLE001 - see _call's docstring for why this is broad
+        return _no_data(str(exc))
+    finally:
+        conn.close()
+
+
+@app.post("/api/recipe-rating")
+def set_recipe_rating(body: RecipeRatingIn):
+    if cook is None:
+        raise HTTPException(status_code=503, detail="cook.py not available yet")
+    if body.rating not in (None, "like", "dislike"):
+        raise HTTPException(status_code=400, detail="rating must be 'like', 'dislike', or null")
+    conn = get_connection()
+    try:
+        cook.set_recipe_rating(conn, body.recipe_id, body.rating)
+    finally:
+        conn.close()
+    return {"ok": True}
+
+
+@app.get("/api/recipes")
+def all_recipes():
+    if cook is None:
+        return _no_data("cook.py not available yet")
+    conn = get_connection()
+    try:
+        result = cook.get_all_recipes(conn)
+        if not result:
+            return _no_data()
+        return result
+    except Exception as exc:  # noqa: BLE001 - see _call's docstring for why this is broad
+        return _no_data(str(exc))
+    finally:
+        conn.close()
 
 
 @app.get("/api/activities/{activity_id}/detail")
@@ -237,8 +360,22 @@ def activity_detail(activity_id: str):
     }
 
 
+class NoCacheStaticFiles(StaticFiles):
+    """Plain StaticFiles sends no Cache-Control header at all, so browsers
+    fall back to their own heuristic caching -- which has repeatedly served
+    a stale cook.html/cook.js after an edit here, making a working change
+    look broken until a hard refresh. This is a locally-run dashboard whose
+    files change often; there's no CDN/scale reason to let browsers cache
+    them, so just disable it."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+
 static_dir = Path(__file__).parent / "static"
-app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+app.mount("/", NoCacheStaticFiles(directory=static_dir, html=True), name="static")
 
 
 if __name__ == "__main__":

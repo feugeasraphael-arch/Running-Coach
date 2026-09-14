@@ -167,6 +167,21 @@ def get_activity_streams(access_token: str, external_id: str) -> dict:
     return {k: v.get("data", []) for k, v in raw.items()}
 
 
+def get_gear(access_token: str, gear_id: str) -> dict:
+    """Returns Strava's gear record: {id, name, distance (m, lifetime total), retired, ...}."""
+    resp = requests.get(
+        f"https://www.strava.com/api/v3/gear/{gear_id}",
+        headers={"Authorization": f"Bearer {access_token}"},
+        timeout=30,
+    )
+    if resp.status_code == 429:
+        raise RuntimeError("Strava rate limit hit fetching gear.")
+    if resp.status_code == 404:
+        return {}
+    resp.raise_for_status()
+    return resp.json()
+
+
 def get_activity_laps(access_token: str, external_id: str) -> list[dict]:
     resp = requests.get(
         f"https://www.strava.com/api/v3/activities/{external_id}/laps",

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS activities (
     avg_cadence         REAL,
     calories            REAL,
     perceived_effort    REAL,                  -- Strava suffer_score or Garmin trainingEffort, scaled 0-100
+    gear_id             TEXT,                  -- Strava gear id (shoe/bike), e.g. "g12345678"
     raw_json            TEXT,                  -- original payload, for reprocessing if schema evolves
     created_at          TEXT DEFAULT (datetime('now')),
     UNIQUE (source, external_id)
@@ -44,6 +45,13 @@ CREATE TABLE IF NOT EXISTS wellness (
     vo2max                  REAL,
     sleep_score             REAL,
     sleep_duration_s        INTEGER,
+    sleep_deep_s            INTEGER,           -- sleep-stage breakdown; deep+REM ratio is a recovery-quality signal
+    sleep_light_s           INTEGER,
+    sleep_rem_s             INTEGER,
+    sleep_awake_s           INTEGER,
+    sleep_avg_respiration   REAL,              -- breaths/min overnight; elevated values can flag illness/fatigue
+    sleep_avg_hr            REAL,              -- mean of overnight HR samples (distinct from resting_hr, a spot value)
+    sleep_avg_stress        REAL,              -- mean of overnight stress samples
     stress_avg              REAL,
     raw_json                TEXT,
     created_at              TEXT DEFAULT (datetime('now'))
@@ -64,9 +72,44 @@ CREATE TABLE IF NOT EXISTS planned_workouts (
     synced_at           TEXT DEFAULT (datetime('now'))
 );
 
+-- Strava gear (shoes/bikes). distance_m is Strava's own accumulated total for
+-- that gear item -- it can include mileage the athlete manually back-logged
+-- when the gear was first added, not just what run-coach has ingested.
+CREATE TABLE IF NOT EXISTS gear (
+    id                  TEXT PRIMARY KEY,   -- Strava gear id, e.g. "g12345678"
+    name                TEXT,
+    distance_m          REAL,
+    retired             INTEGER,             -- 0/1, as reported by Strava
+    synced_at           TEXT DEFAULT (datetime('now'))
+);
+
 -- Tracks incremental sync progress per source so re-runs don't re-fetch everything.
 CREATE TABLE IF NOT EXISTS sync_state (
     source              TEXT PRIMARY KEY,       -- 'strava' | 'garmin'
     last_synced_at      TEXT,                   -- ISO 8601 UTC, when the sync last ran
     cursor              TEXT                    -- source-specific bookmark (e.g. last activity start_time)
+);
+
+-- Strava's own "Performance Predictions" (subscriber-only ML feature, not
+-- exposed via the public API — scraped from the logged-in web app by
+-- strava_predictions.py). One row per (period_date, distance) so re-scraping
+-- the same day/week just refreshes the value instead of duplicating it.
+CREATE TABLE IF NOT EXISTS strava_predictions (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    captured_at         TEXT NOT NULL,          -- ISO 8601 UTC, when we scraped this snapshot
+    period_date         TEXT NOT NULL,          -- 'YYYY-MM-DD' Strava attributes this value to
+    distance_label      TEXT NOT NULL,          -- '5K' | '10K' | 'Half Marathon' | 'Marathon'
+    predicted_time_s    INTEGER NOT NULL,
+    raw_json            TEXT,
+    UNIQUE (period_date, distance_label)
+);
+
+CREATE INDEX IF NOT EXISTS idx_strava_predictions_period ON strava_predictions (period_date);
+
+-- Per-recipe like/dislike, keyed by the recipe "id" field in cook_data.json.
+-- A missing row means "no opinion yet" -- cook.py treats that as neutral.
+CREATE TABLE IF NOT EXISTS recipe_ratings (
+    recipe_id           TEXT PRIMARY KEY,
+    rating              TEXT NOT NULL CHECK (rating IN ('like', 'dislike')),
+    updated_at          TEXT DEFAULT (datetime('now'))
 );

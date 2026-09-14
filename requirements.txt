@@ -3,3 +3,4 @@ requests
 fastapi
 uvicorn[standard]
 garminconnect
+playwright

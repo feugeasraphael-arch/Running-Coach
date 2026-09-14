@@ -7,18 +7,22 @@
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="wrap">
-    <div class="header-row">
-        <div>
-            <h1>Training Plan</h1>
-            <div class="subtitle"><a href="index.html" class="nav-link">← Dashboard</a></div>
+<nav class="top-nav">
+    <div class="top-nav-inner">
+        <div class="top-nav-brand">Run Coach</div>
+        <div class="top-nav-links">
+            <a href="index.html" class="top-nav-link">Dashboard</a>
+            <a href="plan.html" class="top-nav-link active">Training plan</a>
+            <a href="cook.html" class="top-nav-link">The Cook</a>
         </div>
         <div class="header-actions">
             <button id="update-btn" class="update-btn">Update</button>
             <div id="update-status" class="update-status"></div>
         </div>
     </div>
+</nav>
 
+<div class="wrap">
     <div id="advice-banner" class="banner">
         <div class="headline">Loading…</div>
     </div>

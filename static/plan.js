@@ -7,8 +7,20 @@ async function fetchJSON(url) {
     }
 }
 
+// Keeps each card's <h2> title intact across loading/empty/loaded states —
+// see the matching helper in app.js for why.
+function cardBody(container) {
+    let body = container.querySelector(":scope > .card-body");
+    if (!body) {
+        body = document.createElement("div");
+        body.className = "card-body";
+        container.appendChild(body);
+    }
+    return body;
+}
+
 function emptyState(container, message) {
-    container.innerHTML = `<div class="empty-state">${message}</div>`;
+    cardBody(container).innerHTML = `<div class="empty-state">${message}</div>`;
 }
 
 function fmtDuration(sec) {
@@ -42,6 +54,8 @@ async function loadPlan() {
     const banner = document.getElementById("advice-banner");
     const adherenceCard = document.getElementById("adherence-card");
     const timelineCard = document.getElementById("plan-timeline-card");
+    const adherenceBody = cardBody(adherenceCard);
+    const timelineBody = cardBody(timelineCard);
 
     if (!data || !data.days) {
         banner.innerHTML = `<div class="headline">No training plan loaded</div><div class="detail">${(data && data.detail) || ""}</div>`;
@@ -56,7 +70,7 @@ async function loadPlan() {
         emptyState(adherenceCard, "Not enough tracked sessions yet.");
     } else {
         const pct = Math.round(data.adherence_rate * 100);
-        adherenceCard.innerHTML = `
+        adherenceBody.innerHTML = `
             <div class="recovery-stats">
                 <div class="stat"><div class="value">${pct}%</div><div class="label">Adherence</div></div>
                 <div class="stat"><div class="value">${data.completed}</div><div class="label">Completed</div></div>
@@ -77,19 +91,19 @@ async function loadPlan() {
                 ? `${d.actual_distance_km}km${d.actual_avg_hr != null ? ` @ ${Math.round(d.actual_avg_hr)}bpm` : ""}`
                 : "–";
             return `<tr>
-                <td>${new Date(d.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</td>
-                <td>${TYPE_LABEL[d.workout_type] || d.workout_type || ""}</td>
-                <td>${d.title}</td>
-                <td>${target || "–"}</td>
-                <td>${actual}</td>
-                <td><span class="status-badge ${status.cls}">${status.text}</span></td>
+                <td data-label="Date">${new Date(d.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</td>
+                <td data-label="Type">${TYPE_LABEL[d.workout_type] || d.workout_type || ""}</td>
+                <td data-label="Session" class="cell-wrap">${d.title}</td>
+                <td data-label="Target" class="cell-wrap">${target || "–"}</td>
+                <td data-label="Actual">${actual}</td>
+                <td data-label="Status"><span class="status-badge ${status.cls}">${status.text}</span></td>
             </tr>`;
         })
         .join("");
 
-    timelineCard.innerHTML = `
+    timelineBody.innerHTML = `
         <div class="table-scroll">
-            <table>
+            <table class="stack-on-mobile">
                 <thead><tr><th>Date</th><th>Type</th><th>Session</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>

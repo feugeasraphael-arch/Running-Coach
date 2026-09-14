@@ -1,0 +1,619 @@
+[
+  {
+    "id": "b1", "meal_type": "breakfast", "name": "Overnight oats with banana & peanut butter",
+    "tags": ["pre_run", "high_carb", "quick", "vegetarian"], "prep_time_min": 5,
+    "ingredients": [
+      {"item": "Rolled oats", "qty": "80 g"},
+      {"item": "Milk (or oat milk)", "qty": "200 ml"},
+      {"item": "Banana", "qty": "1"},
+      {"item": "Peanut butter", "qty": "15 g"},
+      {"item": "Chia seeds", "qty": "1 tsp"},
+      {"item": "Honey", "qty": "1 tsp"}
+    ],
+    "steps": [
+      "The night before, mix oats, milk, chia seeds and honey in a jar.",
+      "Refrigerate overnight.",
+      "In the morning, slice the banana on top and swirl in the peanut butter."
+    ],
+    "macros": {"calories": 480, "protein_g": 16, "carbs_g": 72, "fat_g": 15},
+    "est_cost_eur": 1.10,
+    "tip": "Oats + banana 1-2h before a run gives easily-digestible carbs without the fibre/fat overload that can cause GI issues mid-run."
+  },
+  {
+    "id": "b2", "meal_type": "breakfast", "name": "Greek yogurt bowl with granola & berries",
+    "tags": ["recovery", "high_protein", "quick", "vegetarian"], "prep_time_min": 3,
+    "ingredients": [
+      {"item": "Greek yogurt", "qty": "200 g"},
+      {"item": "Granola", "qty": "40 g"},
+      {"item": "Mixed berries", "qty": "100 g"},
+      {"item": "Honey", "qty": "1 tsp"}
+    ],
+    "steps": [
+      "Spoon yogurt into a bowl.",
+      "Top with granola and berries.",
+      "Drizzle with honey."
+    ],
+    "macros": {"calories": 380, "protein_g": 24, "carbs_g": 45, "fat_g": 9},
+    "est_cost_eur": 1.80,
+    "tip": "Greek yogurt's protein-to-carb mix within 30-60 min post-run kickstarts muscle repair while topping up glycogen."
+  },
+  {
+    "id": "b3", "meal_type": "breakfast", "name": "Scrambled eggs & avocado toast",
+    "tags": ["recovery", "balanced"], "prep_time_min": 12,
+    "ingredients": [
+      {"item": "Eggs", "qty": "3"},
+      {"item": "Wholegrain bread", "qty": "2 slices"},
+      {"item": "Avocado", "qty": "1/2"},
+      {"item": "Cherry tomatoes", "qty": "6"},
+      {"item": "Olive oil", "qty": "1 tsp"},
+      {"item": "Salt & pepper", "qty": "to taste"}
+    ],
+    "steps": [
+      "Toast the bread.",
+      "Whisk and scramble the eggs in olive oil over low heat.",
+      "Mash avocado onto toast, season.",
+      "Serve eggs and halved tomatoes alongside."
+    ],
+    "macros": {"calories": 520, "protein_g": 26, "carbs_g": 34, "fat_g": 30},
+    "est_cost_eur": 2.30,
+    "tip": "Eggs are one of the few whole foods with a complete amino-acid profile — a solid recovery-day protein anchor after a hard training morning."
+  },
+  {
+    "id": "b4", "meal_type": "breakfast", "name": "Banana & honey porridge",
+    "tags": ["pre_run", "high_carb", "quick", "vegetarian"], "prep_time_min": 8,
+    "ingredients": [
+      {"item": "Rolled oats", "qty": "70 g"},
+      {"item": "Milk", "qty": "250 ml"},
+      {"item": "Banana", "qty": "1"},
+      {"item": "Honey", "qty": "1 tbsp"},
+      {"item": "Cinnamon", "qty": "pinch"}
+    ],
+    "steps": [
+      "Simmer oats in milk for 5 min, stirring.",
+      "Slice banana over the top.",
+      "Drizzle honey and dust with cinnamon."
+    ],
+    "macros": {"calories": 430, "protein_g": 13, "carbs_g": 78, "fat_g": 7},
+    "est_cost_eur": 0.90,
+    "tip": "A high-carb, low-fat, low-fibre breakfast like this sits well in the stomach 1-3h before a long run or hard session."
+  },
+  {
+    "id": "b5", "meal_type": "breakfast", "name": "Peanut butter & banana toast",
+    "tags": ["pre_run", "quick", "vegetarian"], "prep_time_min": 4,
+    "ingredients": [
+      {"item": "Wholegrain bread", "qty": "2 slices"},
+      {"item": "Peanut butter", "qty": "25 g"},
+      {"item": "Banana", "qty": "1"},
+      {"item": "Honey", "qty": "drizzle"}
+    ],
+    "steps": [
+      "Toast the bread.",
+      "Spread peanut butter.",
+      "Top with sliced banana and a drizzle of honey."
+    ],
+    "macros": {"calories": 420, "protein_g": 14, "carbs_g": 55, "fat_g": 16},
+    "est_cost_eur": 1.00,
+    "tip": "Quick and portable — a good option when you're fuelling less than an hour before heading out the door."
+  },
+  {
+    "id": "b6", "meal_type": "breakfast", "name": "Spinach & feta omelette with oats",
+    "tags": ["recovery", "high_protein", "vegetarian"], "prep_time_min": 12,
+    "ingredients": [
+      {"item": "Eggs", "qty": "3"},
+      {"item": "Spinach", "qty": "40 g"},
+      {"item": "Feta", "qty": "30 g"},
+      {"item": "Rolled oats (side)", "qty": "40 g"},
+      {"item": "Olive oil", "qty": "1 tsp"}
+    ],
+    "steps": [
+      "Wilt spinach in a pan.",
+      "Whisk eggs, pour over spinach, crumble in feta.",
+      "Cook until set, fold.",
+      "Serve with a small side of plain oats."
+    ],
+    "macros": {"calories": 490, "protein_g": 30, "carbs_g": 28, "fat_g": 27},
+    "est_cost_eur": 2.20,
+    "tip": "Pairing protein (eggs, feta) with a modest carb side supports both muscle repair and glycogen refill after a hard morning session."
+  },
+  {
+    "id": "b7", "meal_type": "breakfast", "name": "French toast with berry compote",
+    "tags": ["high_carb", "vegetarian"], "prep_time_min": 15,
+    "ingredients": [
+      {"item": "Wholegrain bread", "qty": "3 slices"},
+      {"item": "Eggs", "qty": "2"},
+      {"item": "Milk", "qty": "60 ml"},
+      {"item": "Mixed berries", "qty": "100 g"},
+      {"item": "Honey", "qty": "1 tsp"},
+      {"item": "Cinnamon", "qty": "pinch"}
+    ],
+    "steps": [
+      "Whisk eggs, milk and cinnamon.",
+      "Dip bread, pan-fry until golden both sides.",
+      "Simmer berries with honey for 3 min into a quick compote.",
+      "Serve toast topped with compote."
+    ],
+    "macros": {"calories": 500, "protein_g": 20, "carbs_g": 68, "fat_g": 15},
+    "est_cost_eur": 1.60,
+    "tip": "A treat-y, higher-carb breakfast — good to place on a long-run morning where you'll burn through the extra energy."
+  },
+  {
+    "id": "b8", "meal_type": "breakfast", "name": "Cottage cheese pancakes",
+    "tags": ["recovery", "high_protein", "vegetarian"], "prep_time_min": 15,
+    "ingredients": [
+      {"item": "Cottage cheese", "qty": "150 g"},
+      {"item": "Eggs", "qty": "2"},
+      {"item": "Oat flour", "qty": "40 g"},
+      {"item": "Maple syrup", "qty": "1 tbsp"},
+      {"item": "Blueberries", "qty": "50 g"}
+    ],
+    "steps": [
+      "Blend cottage cheese, eggs and oat flour into a batter.",
+      "Cook small pancakes in a non-stick pan, 2 min per side.",
+      "Top with blueberries and maple syrup."
+    ],
+    "macros": {"calories": 460, "protein_g": 32, "carbs_g": 40, "fat_g": 16},
+    "est_cost_eur": 2.00,
+    "tip": "Cottage cheese's slow-digesting casein protein makes this a good choice the morning after a heavy session, keeping amino acids trickling in for longer."
+  },
+  {
+    "id": "l1", "meal_type": "lunch", "name": "Chicken, rice & veg bowl",
+    "tags": ["recovery", "balanced"], "prep_time_min": 25,
+    "ingredients": [
+      {"item": "Chicken breast", "qty": "150 g"},
+      {"item": "Rice (dry)", "qty": "80 g"},
+      {"item": "Broccoli", "qty": "100 g"},
+      {"item": "Carrot", "qty": "1"},
+      {"item": "Soy sauce", "qty": "1 tbsp"},
+      {"item": "Olive oil", "qty": "1 tsp"}
+    ],
+    "steps": [
+      "Cook rice according to packet instructions.",
+      "Pan-fry sliced chicken breast until cooked through.",
+      "Steam broccoli and carrot.",
+      "Combine in a bowl, drizzle with soy sauce and oil."
+    ],
+    "macros": {"calories": 620, "protein_g": 45, "carbs_g": 65, "fat_g": 14},
+    "est_cost_eur": 3.50,
+    "tip": "A balanced ~40/40/20 carb/protein/fat split like this is a solid default lunch on any training day, hard or easy."
+  },
+  {
+    "id": "l2", "meal_type": "lunch", "name": "Quinoa, chickpea & feta salad",
+    "tags": ["balanced", "high_carb", "vegetarian"], "prep_time_min": 20,
+    "ingredients": [
+      {"item": "Quinoa (dry)", "qty": "70 g"},
+      {"item": "Chickpeas (drained)", "qty": "150 g"},
+      {"item": "Feta", "qty": "40 g"},
+      {"item": "Cherry tomatoes", "qty": "100 g"},
+      {"item": "Cucumber", "qty": "1/2"},
+      {"item": "Olive oil", "qty": "1 tbsp"},
+      {"item": "Lemon juice", "qty": "to taste"}
+    ],
+    "steps": [
+      "Cook quinoa per packet, cool slightly.",
+      "Combine with chickpeas, diced cucumber and halved tomatoes.",
+      "Crumble in feta.",
+      "Dress with olive oil and lemon juice."
+    ],
+    "macros": {"calories": 560, "protein_g": 22, "carbs_g": 68, "fat_g": 22},
+    "est_cost_eur": 2.80,
+    "tip": "Chickpeas + quinoa together supply a fuller amino-acid profile than either alone — useful on plant-forward lunch days."
+  },
+  {
+    "id": "l3", "meal_type": "lunch", "name": "Tuna pasta salad",
+    "tags": ["balanced", "quick"], "prep_time_min": 15,
+    "ingredients": [
+      {"item": "Pasta (dry)", "qty": "80 g"},
+      {"item": "Tuna in water", "qty": "1 can (120 g)"},
+      {"item": "Cherry tomatoes", "qty": "100 g"},
+      {"item": "Sweetcorn", "qty": "50 g"},
+      {"item": "Olive oil", "qty": "1 tbsp"},
+      {"item": "Red onion", "qty": "1/4"}
+    ],
+    "steps": [
+      "Cook pasta, drain and cool.",
+      "Flake in tuna, add tomatoes, sweetcorn and thinly sliced onion.",
+      "Toss with olive oil."
+    ],
+    "macros": {"calories": 580, "protein_g": 34, "carbs_g": 70, "fat_g": 14},
+    "est_cost_eur": 2.60,
+    "tip": "An easy make-ahead lunch to prep the night before a busy training day — tastes fine cold, no reheating needed."
+  },
+  {
+    "id": "l4", "meal_type": "lunch", "name": "Turkey & hummus wrap",
+    "tags": ["quick"], "prep_time_min": 6,
+    "ingredients": [
+      {"item": "Wholewheat wrap", "qty": "1"},
+      {"item": "Turkey breast slices", "qty": "80 g"},
+      {"item": "Hummus", "qty": "40 g"},
+      {"item": "Mixed salad leaves", "qty": "handful"},
+      {"item": "Grated carrot", "qty": "1"},
+      {"item": "Cucumber", "qty": "few slices"}
+    ],
+    "steps": [
+      "Spread hummus over the wrap.",
+      "Layer turkey, salad, carrot and cucumber.",
+      "Roll tightly and slice in half."
+    ],
+    "macros": {"calories": 430, "protein_g": 28, "carbs_g": 42, "fat_g": 15},
+    "est_cost_eur": 2.40,
+    "tip": "A five-minute lunch is still a good lunch — consistency in eating enough day to day matters more than any single meal being perfect."
+  },
+  {
+    "id": "l5", "meal_type": "lunch", "name": "Lentil soup with crusty bread",
+    "tags": ["high_carb", "vegetarian"], "prep_time_min": 30,
+    "ingredients": [
+      {"item": "Red lentils (dry)", "qty": "100 g"},
+      {"item": "Carrot", "qty": "1"},
+      {"item": "Onion", "qty": "1/2"},
+      {"item": "Vegetable stock", "qty": "500 ml"},
+      {"item": "Cumin", "qty": "pinch"},
+      {"item": "Crusty bread", "qty": "1 slice"}
+    ],
+    "steps": [
+      "Sauté onion and carrot.",
+      "Add lentils and stock, simmer 20 min until soft.",
+      "Season with cumin, blend partially if you like it smoother.",
+      "Serve with bread."
+    ],
+    "macros": {"calories": 480, "protein_g": 24, "carbs_g": 78, "fat_g": 6},
+    "est_cost_eur": 1.70,
+    "tip": "Lentils are a great budget source of both carbs and plant protein — good for a cheap, filling training-day lunch."
+  },
+  {
+    "id": "l6", "meal_type": "lunch", "name": "Salmon, sweet potato & greens",
+    "tags": ["recovery", "high_protein"], "prep_time_min": 25,
+    "ingredients": [
+      {"item": "Salmon fillet", "qty": "150 g"},
+      {"item": "Sweet potato", "qty": "200 g"},
+      {"item": "Green beans", "qty": "100 g"},
+      {"item": "Olive oil", "qty": "1 tsp"},
+      {"item": "Lemon", "qty": "1 wedge"}
+    ],
+    "steps": [
+      "Roast cubed sweet potato at 200°C for 20 min.",
+      "Pan-fry or bake salmon 8-10 min.",
+      "Steam green beans.",
+      "Plate together with a squeeze of lemon."
+    ],
+    "macros": {"calories": 610, "protein_g": 38, "carbs_g": 45, "fat_g": 28},
+    "est_cost_eur": 4.80,
+    "tip": "Salmon's omega-3s have some evidence for reducing exercise-induced inflammation — a nice recovery-day protein choice."
+  },
+  {
+    "id": "l7", "meal_type": "lunch", "name": "Beef & vegetable stir-fry with noodles",
+    "tags": ["recovery", "high_carb"], "prep_time_min": 20,
+    "ingredients": [
+      {"item": "Beef strips", "qty": "150 g"},
+      {"item": "Egg noodles (dry)", "qty": "80 g"},
+      {"item": "Bell pepper", "qty": "1"},
+      {"item": "Broccoli", "qty": "100 g"},
+      {"item": "Soy sauce", "qty": "2 tbsp"},
+      {"item": "Garlic", "qty": "1 clove"},
+      {"item": "Ginger", "qty": "small piece"},
+      {"item": "Vegetable oil", "qty": "1 tbsp"}
+    ],
+    "steps": [
+      "Cook noodles per packet.",
+      "Stir-fry beef in hot oil until browned, set aside.",
+      "Stir-fry vegetables with garlic and ginger.",
+      "Combine everything with noodles and soy sauce."
+    ],
+    "macros": {"calories": 650, "protein_g": 40, "carbs_g": 68, "fat_g": 20},
+    "est_cost_eur": 4.20,
+    "tip": "Combining a decent protein hit with plenty of carbs covers both repair and glycogen refill in one plate — handy after a hard AM session."
+  },
+  {
+    "id": "l8", "meal_type": "lunch", "name": "Falafel pita with tahini",
+    "tags": ["vegetarian", "quick"], "prep_time_min": 12,
+    "ingredients": [
+      {"item": "Falafel", "qty": "4 pieces"},
+      {"item": "Pita bread", "qty": "1"},
+      {"item": "Tahini sauce", "qty": "2 tbsp"},
+      {"item": "Salad leaves", "qty": "handful"},
+      {"item": "Tomato", "qty": "1"},
+      {"item": "Cucumber", "qty": "few slices"}
+    ],
+    "steps": [
+      "Warm the falafel (oven or pan).",
+      "Slice open the pita.",
+      "Fill with salad, tomato, cucumber and falafel.",
+      "Drizzle with tahini."
+    ],
+    "macros": {"calories": 540, "protein_g": 18, "carbs_g": 64, "fat_g": 22},
+    "est_cost_eur": 2.50,
+    "tip": "Chickpea-based falafel plus tahini gives a reasonable plant-protein lunch, though it runs lighter on protein than a meat/fish equivalent — pair with a protein-forward dinner."
+  },
+  {
+    "id": "d1", "meal_type": "dinner", "name": "Spaghetti bolognese",
+    "tags": ["pre_run", "high_carb"], "prep_time_min": 35,
+    "ingredients": [
+      {"item": "Spaghetti (dry)", "qty": "90 g"},
+      {"item": "Beef mince", "qty": "120 g"},
+      {"item": "Onion", "qty": "1/2"},
+      {"item": "Garlic", "qty": "1 clove"},
+      {"item": "Chopped tomatoes", "qty": "1 tin (400 g)"},
+      {"item": "Tomato paste", "qty": "1 tbsp"},
+      {"item": "Olive oil", "qty": "1 tsp"},
+      {"item": "Parmesan", "qty": "optional"}
+    ],
+    "steps": [
+      "Sauté onion and garlic in oil.",
+      "Brown the mince.",
+      "Add tomatoes and paste, simmer 20 min.",
+      "Cook spaghetti, combine and top with parmesan."
+    ],
+    "macros": {"calories": 690, "protein_g": 36, "carbs_g": 82, "fat_g": 22},
+    "est_cost_eur": 3.20,
+    "tip": "A classic carb-loading dinner — eat this the night before a long run or hard interval session to top up glycogen stores."
+  },
+  {
+    "id": "d2", "meal_type": "dinner", "name": "Grilled chicken, roasted potatoes & broccoli",
+    "tags": ["recovery", "high_protein"], "prep_time_min": 35,
+    "ingredients": [
+      {"item": "Chicken breast", "qty": "180 g"},
+      {"item": "Potatoes", "qty": "250 g"},
+      {"item": "Broccoli", "qty": "150 g"},
+      {"item": "Olive oil", "qty": "1 tbsp"},
+      {"item": "Paprika", "qty": "pinch"},
+      {"item": "Garlic powder", "qty": "pinch"}
+    ],
+    "steps": [
+      "Toss potato wedges in oil and paprika, roast 25 min at 200°C.",
+      "Grill or pan-fry chicken until cooked through.",
+      "Steam broccoli.",
+      "Plate together."
+    ],
+    "macros": {"calories": 580, "protein_g": 48, "carbs_g": 48, "fat_g": 18},
+    "est_cost_eur": 3.80,
+    "tip": "High protein, moderate carb — a good choice on rest days or the evening after a hard session, when refuelling matters more than pre-loading."
+  },
+  {
+    "id": "d3", "meal_type": "dinner", "name": "Baked salmon, rice & asparagus",
+    "tags": ["recovery", "high_protein"], "prep_time_min": 25,
+    "ingredients": [
+      {"item": "Salmon fillet", "qty": "160 g"},
+      {"item": "Rice (dry)", "qty": "70 g"},
+      {"item": "Asparagus", "qty": "100 g"},
+      {"item": "Lemon", "qty": "1"},
+      {"item": "Olive oil", "qty": "1 tsp"},
+      {"item": "Dill", "qty": "optional"}
+    ],
+    "steps": [
+      "Cook rice per packet.",
+      "Bake salmon at 200°C for 12-15 min with lemon and dill.",
+      "Steam or pan-grill asparagus.",
+      "Plate together."
+    ],
+    "macros": {"calories": 590, "protein_g": 40, "carbs_g": 48, "fat_g": 24},
+    "est_cost_eur": 4.90,
+    "tip": "Fatty fish twice a week is a reasonable target for omega-3 intake — good to rotate in on lighter training days."
+  },
+  {
+    "id": "d4", "meal_type": "dinner", "name": "Vegetarian chili with rice",
+    "tags": ["pre_run", "high_carb", "vegetarian"], "prep_time_min": 30,
+    "ingredients": [
+      {"item": "Kidney beans (drained)", "qty": "200 g"},
+      {"item": "Black beans (drained)", "qty": "150 g"},
+      {"item": "Chopped tomatoes", "qty": "1 tin (400 g)"},
+      {"item": "Onion", "qty": "1/2"},
+      {"item": "Bell pepper", "qty": "1"},
+      {"item": "Chili powder", "qty": "to taste"},
+      {"item": "Rice (dry)", "qty": "80 g"}
+    ],
+    "steps": [
+      "Sauté onion and pepper.",
+      "Add beans, tomatoes and chili powder, simmer 20 min.",
+      "Cook rice separately.",
+      "Serve chili over rice."
+    ],
+    "macros": {"calories": 620, "protein_g": 24, "carbs_g": 108, "fat_g": 8},
+    "est_cost_eur": 2.40,
+    "tip": "Beans deliver slow-release carbs plus fibre and plant protein — good the night before a long run, just not so close to it that the fibre causes GI discomfort mid-run."
+  },
+  {
+    "id": "d5", "meal_type": "dinner", "name": "Steak, sweet potato mash & green beans",
+    "tags": ["recovery", "high_protein"], "prep_time_min": 25,
+    "ingredients": [
+      {"item": "Beef steak", "qty": "180 g"},
+      {"item": "Sweet potato", "qty": "250 g"},
+      {"item": "Green beans", "qty": "100 g"},
+      {"item": "Butter", "qty": "10 g"},
+      {"item": "Salt & pepper", "qty": "to taste"}
+    ],
+    "steps": [
+      "Boil and mash sweet potato with butter.",
+      "Pan-sear steak to preference.",
+      "Steam green beans.",
+      "Plate together, rest the steak 2-3 min before slicing."
+    ],
+    "macros": {"calories": 650, "protein_g": 46, "carbs_g": 42, "fat_g": 30},
+    "est_cost_eur": 6.20,
+    "tip": "Red meat's iron is well-absorbed (heme iron) — worth keeping in rotation, since endurance runners run a higher risk of low iron stores."
+  },
+  {
+    "id": "d6", "meal_type": "dinner", "name": "Mushroom & parmesan risotto",
+    "tags": ["pre_run", "high_carb", "vegetarian"], "prep_time_min": 35,
+    "ingredients": [
+      {"item": "Arborio rice", "qty": "90 g"},
+      {"item": "Mushrooms", "qty": "150 g"},
+      {"item": "Vegetable stock", "qty": "600 ml"},
+      {"item": "Onion", "qty": "1/2"},
+      {"item": "White wine", "qty": "splash, optional"},
+      {"item": "Parmesan", "qty": "20 g"},
+      {"item": "Butter", "qty": "10 g"}
+    ],
+    "steps": [
+      "Sauté onion and mushrooms.",
+      "Add rice, toast briefly, deglaze with wine.",
+      "Add stock a ladle at a time, stirring, ~20 min.",
+      "Finish with butter and parmesan."
+    ],
+    "macros": {"calories": 640, "protein_g": 16, "carbs_g": 98, "fat_g": 18},
+    "est_cost_eur": 3.10,
+    "tip": "Risotto's high carb density and low fibre make it easy on the stomach — a solid choice the evening before a long run."
+  },
+  {
+    "id": "d7", "meal_type": "dinner", "name": "Shrimp & vegetable stir-fry with rice noodles",
+    "tags": ["pre_run", "high_carb"], "prep_time_min": 20,
+    "ingredients": [
+      {"item": "Shrimp", "qty": "150 g"},
+      {"item": "Rice noodles (dry)", "qty": "90 g"},
+      {"item": "Carrot", "qty": "1"},
+      {"item": "Bell pepper", "qty": "1"},
+      {"item": "Pak choi", "qty": "1 head"},
+      {"item": "Soy sauce", "qty": "2 tbsp"},
+      {"item": "Garlic", "qty": "1 clove"},
+      {"item": "Vegetable oil", "qty": "1 tbsp"}
+    ],
+    "steps": [
+      "Soak rice noodles per packet.",
+      "Stir-fry shrimp until pink, set aside.",
+      "Stir-fry vegetables and garlic.",
+      "Combine everything with noodles and soy sauce."
+    ],
+    "macros": {"calories": 560, "protein_g": 32, "carbs_g": 78, "fat_g": 12},
+    "est_cost_eur": 4.50,
+    "tip": "Lighter and lower-fat than a red-meat dinner, so it digests faster — useful if your long run is first thing the next morning."
+  },
+  {
+    "id": "d8", "meal_type": "dinner", "name": "Turkey meatballs with pasta",
+    "tags": ["pre_run", "high_carb"], "prep_time_min": 30,
+    "ingredients": [
+      {"item": "Turkey mince", "qty": "150 g"},
+      {"item": "Breadcrumbs", "qty": "20 g"},
+      {"item": "Egg (for binding)", "qty": "1, optional"},
+      {"item": "Pasta (dry)", "qty": "90 g"},
+      {"item": "Tomato passata", "qty": "300 ml"},
+      {"item": "Garlic", "qty": "1 clove"},
+      {"item": "Basil", "qty": "handful"}
+    ],
+    "steps": [
+      "Mix turkey mince with breadcrumbs and egg, form meatballs.",
+      "Pan-fry until browned, then simmer in passata with garlic for 10 min.",
+      "Cook pasta.",
+      "Combine and top with basil."
+    ],
+    "macros": {"calories": 670, "protein_g": 42, "carbs_g": 78, "fat_g": 16},
+    "est_cost_eur": 3.60,
+    "tip": "Turkey mince keeps this leaner than beef while still hitting a solid protein number alongside the carb-loading pasta base."
+  },
+  {
+    "id": "s1", "meal_type": "snack", "name": "Banana with peanut butter",
+    "tags": ["pre_run", "quick"], "prep_time_min": 2,
+    "ingredients": [
+      {"item": "Banana", "qty": "1"},
+      {"item": "Peanut butter", "qty": "15 g"}
+    ],
+    "steps": [
+      "Slice the banana.",
+      "Serve with peanut butter for dipping (or spread on top)."
+    ],
+    "macros": {"calories": 220, "protein_g": 5, "carbs_g": 30, "fat_g": 9},
+    "est_cost_eur": 0.60,
+    "tip": "A simple, fast-digesting pre-run snack — good 30-60 min before heading out."
+  },
+  {
+    "id": "s2", "meal_type": "snack", "name": "Rice cakes with honey",
+    "tags": ["pre_run", "high_carb", "quick"], "prep_time_min": 1,
+    "ingredients": [
+      {"item": "Rice cakes", "qty": "2"},
+      {"item": "Honey", "qty": "1 tbsp"}
+    ],
+    "steps": [
+      "Drizzle honey over the rice cakes."
+    ],
+    "macros": {"calories": 150, "protein_g": 2, "carbs_g": 34, "fat_g": 1},
+    "est_cost_eur": 0.40,
+    "tip": "Low fat, low fibre, high carb — about as gentle on the stomach as a pre-run snack gets."
+  },
+  {
+    "id": "s3", "meal_type": "snack", "name": "Greek yogurt with honey",
+    "tags": ["recovery", "high_protein", "quick"], "prep_time_min": 1,
+    "ingredients": [
+      {"item": "Greek yogurt", "qty": "150 g"},
+      {"item": "Honey", "qty": "1 tsp"}
+    ],
+    "steps": [
+      "Stir honey into the yogurt."
+    ],
+    "macros": {"calories": 180, "protein_g": 17, "carbs_g": 16, "fat_g": 5},
+    "est_cost_eur": 1.00,
+    "tip": "A quick protein top-up if your next full meal is more than an hour or two after training."
+  },
+  {
+    "id": "s4", "meal_type": "snack", "name": "Protein shake with banana",
+    "tags": ["recovery", "high_protein", "quick"], "prep_time_min": 3,
+    "ingredients": [
+      {"item": "Whey protein powder", "qty": "1 scoop (30 g)"},
+      {"item": "Milk", "qty": "250 ml"},
+      {"item": "Banana", "qty": "1"}
+    ],
+    "steps": [
+      "Blend all ingredients until smooth."
+    ],
+    "macros": {"calories": 320, "protein_g": 30, "carbs_g": 38, "fat_g": 5},
+    "est_cost_eur": 1.50,
+    "tip": "Convenient when appetite is low right after a hard effort but you still want protein in within that first hour or two."
+  },
+  {
+    "id": "s5", "meal_type": "snack", "name": "Almonds & dried apricots",
+    "tags": ["balanced", "quick"], "prep_time_min": 1,
+    "ingredients": [
+      {"item": "Almonds", "qty": "20 g"},
+      {"item": "Dried apricots", "qty": "30 g"}
+    ],
+    "steps": [
+      "Combine in a small bowl or bag."
+    ],
+    "macros": {"calories": 200, "protein_g": 5, "carbs_g": 22, "fat_g": 10},
+    "est_cost_eur": 0.80,
+    "tip": "A good grab-and-go option for an easy or rest day when you don't need to fuel specifically around a session."
+  },
+  {
+    "id": "s6", "meal_type": "snack", "name": "Dates stuffed with almond butter",
+    "tags": ["pre_run", "high_carb", "quick"], "prep_time_min": 3,
+    "ingredients": [
+      {"item": "Medjool dates", "qty": "3"},
+      {"item": "Almond butter", "qty": "15 g"}
+    ],
+    "steps": [
+      "Slit each date open and remove the pit.",
+      "Fill with almond butter."
+    ],
+    "macros": {"calories": 210, "protein_g": 4, "carbs_g": 34, "fat_g": 8},
+    "est_cost_eur": 0.90,
+    "tip": "Dates are one of the most concentrated natural sources of fast carbs — a favourite among endurance athletes for exactly that reason."
+  },
+  {
+    "id": "s7", "meal_type": "snack", "name": "Cottage cheese with pineapple",
+    "tags": ["recovery", "high_protein"], "prep_time_min": 2,
+    "ingredients": [
+      {"item": "Cottage cheese", "qty": "150 g"},
+      {"item": "Pineapple chunks", "qty": "80 g"}
+    ],
+    "steps": [
+      "Combine cottage cheese and pineapple in a bowl."
+    ],
+    "macros": {"calories": 190, "protein_g": 20, "carbs_g": 16, "fat_g": 4},
+    "est_cost_eur": 1.20,
+    "tip": "A genuinely good protein/carb recovery snack, whatever you make of the (thin) evidence around pineapple's anti-inflammatory effects."
+  },
+  {
+    "id": "s8", "meal_type": "snack", "name": "Oat & cocoa energy balls",
+    "tags": ["pre_run", "high_carb", "quick"], "prep_time_min": 8,
+    "ingredients": [
+      {"item": "Rolled oats", "qty": "60 g"},
+      {"item": "Honey", "qty": "2 tbsp"},
+      {"item": "Cocoa powder", "qty": "1 tbsp"},
+      {"item": "Peanut butter", "qty": "20 g"}
+    ],
+    "steps": [
+      "Mix all ingredients into a thick dough.",
+      "Roll into 6 small balls.",
+      "Refrigerate 20 min before eating (batch keeps all week)."
+    ],
+    "macros": {"calories": 240, "protein_g": 6, "carbs_g": 32, "fat_g": 10},
+    "est_cost_eur": 0.70,
+    "tip": "Batch these once and you've got a pre-run snack ready to grab all week — no need to remember to prep one each morning."
+  }
+]

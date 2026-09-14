@@ -8,39 +8,153 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<div class="wrap">
-    <div class="header-row">
-        <div>
-            <h1>Run Coach</h1>
-            <div class="subtitle">Strava + Garmin, synced locally · <a href="plan.html" class="nav-link">Training plan →</a></div>
+<nav class="top-nav">
+    <div class="top-nav-inner">
+        <div class="top-nav-brand">Run Coach</div>
+        <div class="top-nav-links">
+            <a href="index.html" class="top-nav-link active">Dashboard</a>
+            <a href="plan.html" class="top-nav-link">Training plan</a>
+            <a href="cook.html" class="top-nav-link">The Cook</a>
         </div>
         <div class="header-actions">
             <button id="update-btn" class="update-btn">Update</button>
             <div id="update-status" class="update-status"></div>
         </div>
     </div>
+</nav>
 
+<div class="wrap">
     <div id="banner" class="banner">
         <div class="headline">Loading…</div>
     </div>
 
-    <div class="grid">
-        <div class="card" id="weekly-mileage-card"><h2>Weekly mileage</h2></div>
-        <div class="card" id="pace-trend-card"><h2>Pace &amp; HR trend</h2></div>
+    <div class="stats-strip">
+        <div class="card heatmap-card" id="heatmap-card">
+            <div class="card-header">
+                <h2>Training heatmap</h2>
+                <div class="heatmap-nav">
+                    <button id="heatmap-prev" class="expand-btn" aria-label="Earlier" title="Earlier">‹</button>
+                    <span id="heatmap-range-label" class="subtitle" style="margin:0"></span>
+                    <button id="heatmap-next" class="expand-btn" aria-label="Later" title="Later">›</button>
+                </div>
+            </div>
+        </div>
         <div class="card" id="acwr-card"><h2>Acute:chronic workload ratio</h2></div>
         <div class="card" id="recovery-card"><h2>Recovery</h2></div>
-        <div class="card" id="wellness-trend-card"><h2>Sleep &amp; body battery</h2></div>
-        <div class="card" id="heart-rate-trend-card"><h2>Resting &amp; average heart rate</h2></div>
         <div class="card" id="race-predictions-card"><h2>Race times</h2></div>
+        <div class="card" id="vo2max-card">
+            <div class="card-header">
+                <h2>VO2max</h2>
+                <button class="expand-btn" data-chart="vo2max-trend" data-title="VO2max history" aria-label="View VO2max history" title="View history">⤢</button>
+            </div>
+        </div>
     </div>
 
-    <div class="card" id="activities-card"><h2>Recent activities</h2></div>
+    <div class="dashboard-layout">
+        <div class="charts-col">
+            <div class="card chart-card" id="weekly-mileage-card">
+                <div class="card-header">
+                    <h2>Weekly mileage</h2>
+                    <button class="expand-btn" data-chart="weekly-mileage" data-title="Weekly mileage" aria-label="Expand chart" title="Expand">⤢</button>
+                </div>
+                <div class="range-picker" data-chart="weekly-mileage">
+                    <button data-range="today" title="Today">Today</button>
+                    <button data-range="1w" title="1 week">1W</button>
+                    <button data-range="1m" title="1 month" class="active">1M</button>
+                    <button data-range="3m" title="3 months">3M</button>
+                    <button data-range="1y" title="1 year">1Y</button>
+                    <button data-range="all" title="All time">All</button>
+                </div>
+            </div>
+            <div class="card chart-card" id="pace-trend-card">
+                <div class="card-header">
+                    <h2>Pace &amp; HR trend</h2>
+                    <button class="expand-btn" data-chart="pace-trend" data-title="Pace &amp; HR trend" aria-label="Expand chart" title="Expand">⤢</button>
+                </div>
+                <div class="range-picker" data-chart="pace-trend">
+                    <button data-range="today" title="Today">Today</button>
+                    <button data-range="1w" title="1 week">1W</button>
+                    <button data-range="1m" title="1 month" class="active">1M</button>
+                    <button data-range="3m" title="3 months">3M</button>
+                    <button data-range="1y" title="1 year">1Y</button>
+                    <button data-range="all" title="All time">All</button>
+                </div>
+            </div>
+            <div class="card chart-card" id="sleep-trend-card">
+                <div class="card-header">
+                    <h2>Sleep</h2>
+                    <button class="expand-btn" data-chart="sleep-trend" data-title="Sleep" aria-label="Expand chart" title="Expand">⤢</button>
+                </div>
+                <div class="range-picker" data-chart="sleep-trend">
+                    <button data-range="today" title="Today">Today</button>
+                    <button data-range="1w" title="1 week">1W</button>
+                    <button data-range="1m" title="1 month" class="active">1M</button>
+                    <button data-range="3m" title="3 months">3M</button>
+                    <button data-range="1y" title="1 year">1Y</button>
+                    <button data-range="all" title="All time">All</button>
+                </div>
+            </div>
+            <div class="card chart-card" id="body-battery-card">
+                <div class="card-header">
+                    <h2>Body battery</h2>
+                    <button class="expand-btn" data-chart="body-battery-trend" data-title="Body battery" aria-label="Expand chart" title="Expand">⤢</button>
+                </div>
+                <div class="range-picker" data-chart="body-battery-trend">
+                    <button data-range="today" title="Today">Today</button>
+                    <button data-range="1w" title="1 week">1W</button>
+                    <button data-range="1m" title="1 month" class="active">1M</button>
+                    <button data-range="3m" title="3 months">3M</button>
+                    <button data-range="1y" title="1 year">1Y</button>
+                    <button data-range="all" title="All time">All</button>
+                </div>
+            </div>
+            <div class="card chart-card" id="heart-rate-trend-card">
+                <div class="card-header">
+                    <h2>Resting &amp; average heart rate</h2>
+                    <button class="expand-btn" data-chart="heart-rate-trend" data-title="Resting &amp; average heart rate" aria-label="Expand chart" title="Expand">⤢</button>
+                </div>
+                <div class="range-picker" data-chart="heart-rate-trend">
+                    <button data-range="today" title="Today">Today</button>
+                    <button data-range="1w" title="1 week">1W</button>
+                    <button data-range="1m" title="1 month" class="active">1M</button>
+                    <button data-range="3m" title="3 months">3M</button>
+                    <button data-range="1y" title="1 year">1Y</button>
+                    <button data-range="all" title="All time">All</button>
+                </div>
+            </div>
+        </div>
+
+        <aside class="sidebar-col">
+            <div class="card" id="recent-activities-card">
+                <h2>Recent activities</h2>
+            </div>
+        </aside>
+    </div>
 </div>
+
+<div id="heatmap-tooltip" class="heatmap-tooltip" hidden></div>
 
 <div id="detail-overlay" class="overlay" hidden>
     <div class="detail-modal">
         <button id="detail-close" class="detail-close" aria-label="Close">&times;</button>
         <div id="detail-content"><div class="empty-state">Loading…</div></div>
+    </div>
+</div>
+
+<div id="chart-overlay" class="overlay" hidden>
+    <div class="chart-modal">
+        <button id="chart-overlay-close" class="detail-close" aria-label="Close">&times;</button>
+        <h2 id="chart-overlay-title"></h2>
+        <div id="chart-overlay-range" class="range-picker"></div>
+        <div class="chart-wrap" id="chart-overlay-wrap"><canvas id="chart-overlay-canvas"></canvas></div>
+    </div>
+</div>
+
+<div id="activities-overlay" class="overlay" hidden>
+    <div class="activities-modal">
+        <button id="activities-overlay-close" class="detail-close" aria-label="Close">&times;</button>
+        <h2>All activities</h2>
+        <div id="activities-overlay-content"><div class="empty-state">Loading…</div></div>
     </div>
 </div>
 

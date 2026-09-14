@@ -1,5 +1,7 @@
 .env
 .garminconnect/
+.strava_session/
+strava_discovery/
 *.db
 *.db-journal
 __pycache__/

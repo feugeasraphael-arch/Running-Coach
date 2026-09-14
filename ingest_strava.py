@@ -25,7 +25,7 @@ import requests
 from dotenv import dotenv_values, load_dotenv
 
 import db
-from strava_client import ACTIVITIES_URL, ENV_PATH, ensure_env_file, get_access_token
+from strava_client import ACTIVITIES_URL, ENV_PATH, ensure_env_file, get_access_token, get_gear
 
 # Strava activity "type" values that represent running (sport_type is the
 # newer, more granular field; `type` is the legacy one — we normalize both).
@@ -45,6 +45,15 @@ def _to_row(activity: dict) -> dict:
     if sport_type in _RUN_TYPES and distance_m:
         avg_pace_s_per_km = moving_time_s / (distance_m / 1000)
 
+    # Strava's average_cadence for runs counts one leg's strides/min (like
+    # cycling RPM), not total steps/min -- roughly half of what a runner
+    # would call their cadence and what Garmin's own field reports. Double
+    # it here so avg_cadence means the same thing (true steps/min) no matter
+    # which source an activity came from.
+    avg_cadence = activity.get("average_cadence")
+    if sport_type in _RUN_TYPES and avg_cadence is not None:
+        avg_cadence *= 2
+
     return {
         "id": f"strava_{activity['id']}",
         "source": "strava",
@@ -61,9 +70,10 @@ def _to_row(activity: dict) -> dict:
         "avg_pace_s_per_km": avg_pace_s_per_km,
         "avg_hr": activity.get("average_heartrate"),
         "max_hr": activity.get("max_heartrate"),
-        "avg_cadence": activity.get("average_cadence"),
+        "avg_cadence": avg_cadence,
         "calories": activity.get("calories"),
         "perceived_effort": activity.get("suffer_score"),
+        "gear_id": activity.get("gear_id"),
         "raw_json": json.dumps(activity),
     }
 
@@ -87,6 +97,7 @@ def sync() -> None:
     total = 0
     latest_start = cursor
     earliest_start = None
+    gear_ids = set()
 
     while True:
         params = {"page": page, "per_page": per_page}
@@ -112,6 +123,8 @@ def sync() -> None:
                 latest_start = start
             if start and (earliest_start is None or start < earliest_start):
                 earliest_start = start
+            if row["gear_id"]:
+                gear_ids.add(row["gear_id"])
 
         conn.commit()
         if len(activities) < per_page:
@@ -122,13 +135,37 @@ def sync() -> None:
         db.set_sync_cursor(conn, "strava", latest_start)
         conn.commit()
 
+    # Also refresh gear seen on any run we already have, not just this sync's
+    # batch, since a shoe's total distance keeps climbing after the activity
+    # that introduced it to our DB was ingested.
+    gear_ids |= {
+        r["gear_id"] for r in conn.execute(
+            "SELECT DISTINCT gear_id FROM activities WHERE gear_id IS NOT NULL"
+        ).fetchall()
+    }
+    gear_synced = 0
+    for gear_id in gear_ids:
+        try:
+            gear = get_gear(access_token, gear_id)
+        except RuntimeError:
+            break  # rate limited -- stop, not worth failing the whole sync over gear
+        if gear:
+            db.upsert_gear(conn, {
+                "id": gear_id,
+                "name": gear.get("name"),
+                "distance_m": gear.get("distance"),
+                "retired": int(bool(gear.get("retired"))),
+            })
+            gear_synced += 1
+    conn.commit()
+
     conn.close()
 
     if total == 0:
-        print("Strava sync: no new activities.")
+        print(f"Strava sync: no new activities ({gear_synced} gear record(s) refreshed).")
     else:
         span = f"{earliest_start} to {latest_start}" if earliest_start else latest_start
-        print(f"Strava sync: {total} activities upserted ({span}).")
+        print(f"Strava sync: {total} activities upserted ({span}), {gear_synced} gear record(s) refreshed.")
 
 
 if __name__ == "__main__":
