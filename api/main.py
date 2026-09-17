@@ -15,13 +15,13 @@ from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
-from api.routers import activities, nutrition, plan, system, training, wellness  # noqa: E402
+from api.routers import activities, chat, nutrition, plan, system, training, wellness  # noqa: E402
 
 FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 
 app = FastAPI(title="run-coach API", version="2.0.0")
 
-for r in (activities, training, wellness, plan, nutrition, system):
+for r in (activities, training, wellness, plan, nutrition, system, chat):
     app.include_router(r.router)
 
 

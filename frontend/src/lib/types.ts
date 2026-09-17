@@ -18,6 +18,21 @@ export interface Activity {
   avg_cadence: Nullable<number>;
   calories: Nullable<number>;
   perceived_effort: Nullable<number>;
+  hr_zones?: Nullable<HrZoneSummary>;
+}
+
+export interface HrZone {
+  zone: number;
+  min_bpm: number;
+  max_bpm: Nullable<number>;
+  name: string;
+  description: string;
+}
+
+/** timeline: dominant zone per equal slice of the run (0 = no HR reading). */
+export interface HrZoneSummary {
+  timeline: number[];
+  time_in_zone_s: number[];
 }
 
 export interface Page<T> {
@@ -25,15 +40,34 @@ export interface Page<T> {
   total: number;
   limit: number;
   offset: number;
+  zones?: HrZone[];
 }
 
+export type TargetStatus = "on" | "fast" | "slow";
+
 export interface Split {
+  start_m?: number;
+  end_m?: number;
   distance_m: number;
   time_s: number;
   pace_s_per_km: Nullable<number>;
   avg_hr: Nullable<number>;
   elevation_gain_m: Nullable<number>;
-  kind?: "work" | "recovery";
+  kind?: "work" | "recovery" | "warmup" | "cooldown";
+  target_min_s_per_km?: number;
+  target_max_s_per_km?: number;
+  target_status?: TargetStatus;
+}
+
+export interface IntervalSession {
+  /** Why this run is treated as intervals, e.g. ["training plan", "activity name", "laps"]. */
+  signals: string[];
+  planned: Nullable<{ date: string; title: string; pace_target: Nullable<string>; notes: Nullable<string> }>;
+  target: Nullable<{ min_s_per_km: number; max_s_per_km: number; source: "name" | "plan" }>;
+  reps: number;
+  on_target: number;
+  too_fast: number;
+  too_slow: number;
 }
 
 export type Streams = Partial<Record<"time" | "distance" | "heartrate" | "velocity_smooth" | "altitude" | "cadence" | "grade_smooth", number[]>>;
@@ -43,6 +77,9 @@ export interface ActivityDetail {
   streams: Streams;
   splits: Split[];
   splits_kind: Nullable<"laps" | "intervals" | "km">;
+  intervals: Nullable<IntervalSession>;
+  hr_zones: Nullable<HrZoneSummary>;
+  zones: HrZone[];
   commentary: string[];
   note: Nullable<string>;
 }

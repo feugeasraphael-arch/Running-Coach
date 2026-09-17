@@ -42,6 +42,9 @@ export function CoachHero() {
             <>
               <h1 className="text-2xl font-semibold tracking-tight sm:text-[28px]">{zone.headline}</h1>
               <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">{summary.data.recommendation}</p>
+              <Link to="/coach" className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline">
+                <Sparkles className="size-3.5" /> Demander au coach IA
+              </Link>
             </>
           ) : (
             <>

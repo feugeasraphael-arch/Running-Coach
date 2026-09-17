@@ -19,7 +19,9 @@ export function RateButtons({ recipe, compact }: { recipe: Recipe; compact?: boo
   // snapshot (the meal dialog keeps showing a recipe a dislike just rotated
   // out of the plan); resyncs whenever fresh data arrives from the cache.
   const [current, setCurrent] = useState<Rating>(recipe.rating);
-  useEffect(() => setCurrent(recipe.rating), [recipe.id, recipe.rating]);
+  useEffect(() => {
+    setCurrent(recipe.rating);
+  }, [recipe.id, recipe.rating]);
   const set = (r: Exclude<Rating, null>) => {
     const next = current === r ? null : r;
     setCurrent(next);

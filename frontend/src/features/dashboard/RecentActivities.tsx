@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, ListChecks } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { HrZoneBar } from "@/components/charts/HrZoneBar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { QueryState } from "@/components/ui/QueryState";
@@ -43,6 +44,7 @@ export function RecentActivities() {
                         <span>{duration(a.moving_time_s)}</span>
                         <span>{pace(a.avg_pace_s_per_km)}</span>
                       </div>
+                      <HrZoneBar summary={a.hr_zones} zones={d.zones} className="mt-1" />
                     </div>
                   </Link>
                 </li>

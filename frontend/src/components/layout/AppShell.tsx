@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Suspense, useEffect } from "react";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Activity, CalendarCheck, ChefHat, LayoutDashboard } from "lucide-react";
+import { Activity, CalendarCheck, ChefHat, LayoutDashboard, Sparkles } from "lucide-react";
 import { SyncButton } from "./SyncButton";
 import { cn } from "@/lib/cn";
 
@@ -10,11 +10,14 @@ const NAV = [
   { to: "/activities", label: "Activities", icon: Activity },
   { to: "/plan", label: "Training plan", icon: CalendarCheck },
   { to: "/cook", label: "The Cook", icon: ChefHat },
+  { to: "/coach", label: "Coach IA", icon: Sparkles },
 ];
 
 export function AppShell() {
   const { pathname } = useLocation();
-  useEffect(() => window.scrollTo({ top: 0 }), [pathname]);
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [pathname]);
 
   return (
     <div className="min-h-dvh">
@@ -57,7 +60,7 @@ export function AppShell() {
       {/* Bottom tab bar on small screens */}
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
       >
         {NAV.map((n) => (
           <NavLink

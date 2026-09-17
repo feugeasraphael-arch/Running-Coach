@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { HrZoneBar } from "@/components/charts/HrZoneBar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useActivities } from "@/lib/queries";
@@ -79,7 +80,10 @@ export function ActivitiesPage() {
                     className="cursor-pointer border-b border-line last:border-0 hover:bg-surface-2 focus-visible:bg-surface-2"
                   >
                     <td className="px-4 py-3 whitespace-nowrap text-muted">{fmtDate(a.start_time, { weekday: "short", day: "numeric", month: "short", year: "2-digit" })}</td>
-                    <td className="max-w-72 truncate px-4 py-3 font-medium">{a.name || capitalize(a.sport_type ?? "Run")}</td>
+                    <td className="max-w-72 px-4 py-2.5">
+                      <div className="truncate font-medium">{a.name || capitalize(a.sport_type ?? "Run")}</div>
+                      <HrZoneBar summary={a.hr_zones} zones={data.zones} className="mt-1 max-w-56" />
+                    </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">{km(a.distance_m, 2)} km</td>
                     <td className="hidden px-4 py-3 text-right sm:table-cell">{duration(a.moving_time_s)}</td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">{pace(a.avg_pace_s_per_km)}</td>

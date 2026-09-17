@@ -13,6 +13,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Friendly local name, mapped to 127.0.0.1 in /etc/hosts. Bind IPv4
+    // loopback explicitly: "localhost" resolves to ::1 only on macOS.
+    host: "127.0.0.1",
+    allowedHosts: ["straphael-runningcoach.com"],
     proxy: { "/api": { target: process.env.API_URL ?? "http://127.0.0.1:8000", changeOrigin: true } },
   },
 });

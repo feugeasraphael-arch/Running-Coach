@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { TooltipProvider } from "@/components/ui/Tooltip";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+const CoachPage = lazy(() => import("@/features/coach/CoachPage").then((m) => ({ default: m.CoachPage })));
 const CookPage = lazy(() => import("@/features/cook/CookPage").then((m) => ({ default: m.CookPage })));
 const PlanPage = lazy(() => import("@/features/plan/PlanPage").then((m) => ({ default: m.PlanPage })));
 const ActivityDetailPage = lazy(() => import("@/features/activities/ActivityDetailPage").then((m) => ({ default: m.ActivityDetailPage })));
@@ -31,6 +32,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="activities/:id" element={<ActivityDetailPage />} />
               <Route path="plan" element={<PlanPage />} />
               <Route path="cook" element={<CookPage />} />
+              <Route path="coach" element={<CoachPage />} />
               <Route path="*" element={<EmptyState title="Page not found" hint="That URL doesn't match anything in Run Coach." />} />
             </Route>
           </Routes>
