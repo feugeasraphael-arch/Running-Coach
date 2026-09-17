@@ -10,7 +10,7 @@ import { Stat } from "@/components/ui/Stat";
 import { C, ChartTip, Legend, axisProps, downsample, gridProps } from "@/components/charts/chartKit";
 import { HrZoneStrip, ZoneBreakdown } from "@/components/charts/HrZoneBar";
 import { useActivity } from "@/lib/queries";
-import { capitalize, dateTime, duration, isNum, km, num, pace } from "@/lib/format";
+import { capitalize, dateTime, duration, isNum, km, LOCALE, num, pace } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { ActivityDetail, HrZone, HrZoneSummary, IntervalSession, Split, Streams, TargetStatus } from "@/lib/types";
 
@@ -172,7 +172,7 @@ function IntervalSummary({ iv }: { iv: IntervalSession }) {
   );
 }
 
-const fmtPlanDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+const fmtPlanDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" });
 
 function ZonesCard({ summary, zones }: { summary: HrZoneSummary; zones: HrZone[] }) {
   return (

@@ -1,5 +1,11 @@
 const DASH = "–";
 
+/** The UI is English-only, so dates, times and numbers are formatted in
+ *  English rather than following the browser's locale (which would render
+ *  "il y a 2 minutes" for a French-configured browser). en-GB keeps the
+ *  day-first dates and 24-hour clock the layout is built around. */
+export const LOCALE = "en-GB";
+
 export const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
 export function pace(secPerKm: number | null | undefined, unit = true): string {
@@ -31,7 +37,7 @@ export function num(v: number | null | undefined, digits = 0): string {
 }
 
 export function euro(v: number | null | undefined): string {
-  return isNum(v) ? new Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" }).format(v) : DASH;
+  return isNum(v) ? new Intl.NumberFormat(LOCALE, { style: "currency", currency: "EUR" }).format(v) : DASH;
 }
 
 /** Date-only strings ("2026-09-14") are parsed as local midnight, not UTC,
@@ -41,12 +47,12 @@ export function toDate(value: string): Date {
 }
 
 export const fmtDate = (value: string, opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" }) =>
-  toDate(value).toLocaleDateString(undefined, opts);
+  toDate(value).toLocaleDateString(LOCALE, opts);
 
 export const shortDate = (value: string) => fmtDate(value, { day: "numeric", month: "short" });
 
 export const dateTime = (value: string) =>
-  toDate(value).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  toDate(value).toLocaleString(LOCALE, { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 export function isoDay(d: Date): string {
   const y = d.getFullYear();
@@ -59,7 +65,7 @@ export function relativeTime(value: string): string {
   // sync_state stores "YYYY-MM-DD HH:MM:SS" in UTC without a zone marker.
   const d = new Date(/Z|[+-]\d\d:?\d\d$/.test(value) ? value : `${value.replace(" ", "T")}Z`);
   const diff = (d.getTime() - Date.now()) / 1000;
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const rtf = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" });
   const abs = Math.abs(diff);
   if (abs < 60) return rtf.format(Math.round(diff), "second");
   if (abs < 3600) return rtf.format(Math.round(diff / 60), "minute");

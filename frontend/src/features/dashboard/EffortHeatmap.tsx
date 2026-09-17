@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useEffortCalendar } from "@/lib/queries";
-import { fmtDate, isoDay, km, pace } from "@/lib/format";
+import { fmtDate, isoDay, km, LOCALE, pace } from "@/lib/format";
 import type { EffortDay } from "@/lib/types";
 
 const WEEKS = 53;
@@ -51,7 +51,7 @@ export function EffortHeatmap() {
   const activeDays = inWindow.length;
   const hardDays = inWindow.filter((d) => d.level >= 4).length;
 
-  const range = `${start.toLocaleDateString(undefined, { month: "short", year: "numeric" })} – ${end.toLocaleDateString(undefined, { month: "short", year: "numeric" })}`;
+  const range = `${start.toLocaleDateString(LOCALE, { month: "short", year: "numeric" })} – ${end.toLocaleDateString(LOCALE, { month: "short", year: "numeric" })}`;
 
   return (
     <Card>
@@ -92,7 +92,7 @@ export function EffortHeatmap() {
                   return (
                     <div key={col[0].iso} className="grid grid-rows-[14px_repeat(7,minmax(0,1fr))] gap-[3px]">
                       <span className="relative text-[10px] leading-none text-subtle">
-                        {showMonth && <span className="absolute left-0 whitespace-nowrap">{first.toLocaleDateString(undefined, { month: "short" })}</span>}
+                        {showMonth && <span className="absolute left-0 whitespace-nowrap">{first.toLocaleDateString(LOCALE, { month: "short" })}</span>}
                       </span>
                       {col.map(({ iso }) => {
                         if (iso > todayIso) return <span key={iso} className="aspect-square rounded-[3px]" />;
