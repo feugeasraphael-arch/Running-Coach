@@ -18,8 +18,11 @@ from __future__ import annotations
 import re
 from typing import Optional
 
+# Matches both languages on purpose: the plan is in English, but activity names
+# come from Strava/Garmin the way the athlete typed them, which is French.
 INTERVAL_NAME_RE = re.compile(
-    r"\d+\s*x\s*\d+|interval|fartlek|vma|s[ée]rie|allure sp[ée]cifique|norv[ée]gien|tempo",
+    r"\d+\s*x\s*\d+|interval|fartlek|vma|tempo|threshold"
+    r"|s[ée]rie|allure sp[ée]cifique|norv[ée]gien|norwegian",
     re.IGNORECASE,
 )
 

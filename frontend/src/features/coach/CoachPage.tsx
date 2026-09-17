@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { useCoachChat, type ChatMessage } from "./useCoachChat";
 
 const SUGGESTIONS = [
-  "Je fais quoi demain, vu ma récupération ?",
-  "Comment s'est passée ma dernière séance de fractionné ?",
-  "Mon objectif 10K en moins de 50 min est-il réaliste ?",
-  "Analyse ma charge d'entraînement du dernier mois",
+  "What should I run tomorrow, given my recovery?",
+  "How did my last interval session go?",
+  "Is my sub-50-minute 10K goal realistic?",
+  "Analyse my training load over the last month",
 ];
 
 export function CoachPage() {
@@ -51,20 +51,20 @@ export function CoachPage() {
             <Sparkles className="size-4" />
           </span>
           <div>
-            <h1 className="text-base font-semibold tracking-tight">Coach IA</h1>
-            <p className="text-xs text-muted">{status.data ? `Mistral · ${status.data.model}` : "Mistral"} · lit tes données en direct</p>
+            <h1 className="text-base font-semibold tracking-tight">AI Coach</h1>
+            <p className="text-xs text-muted">{status.data ? `Mistral · ${status.data.model}` : "Mistral"} · reads your live data</p>
           </div>
         </div>
         {!empty && (
           <Button size="sm" variant="ghost" onClick={reset}>
-            <RotateCcw /> Nouvelle conversation
+            <RotateCcw /> New conversation
           </Button>
         )}
       </div>
 
       {status.data && !status.data.configured && (
         <p className="mb-4 flex gap-2 rounded-xl border border-warn/30 bg-warn/10 p-3 text-xs text-warn">
-          <TriangleAlert className="size-4 shrink-0" /> MISTRAL_API_KEY n'est pas défini dans .env — le coach ne peut pas répondre.
+          <TriangleAlert className="size-4 shrink-0" /> MISTRAL_API_KEY is not set in .env — the coach cannot answer.
         </p>
       )}
 
@@ -74,9 +74,9 @@ export function CoachPage() {
             <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-accent-soft text-accent">
               <Sparkles className="size-6" />
             </span>
-            <h2 className="text-xl font-semibold tracking-tight">Pose une question à ton coach</h2>
+            <h2 className="text-xl font-semibold tracking-tight">Ask your coach a question</h2>
             <p className="mt-1.5 max-w-md text-[13px] text-muted">
-              Il consulte ta récupération, ta charge, ton plan et tes séances avant de répondre.
+              It checks your recovery, training load, plan and sessions before answering.
             </p>
             <div className="mt-8 grid w-full gap-2 sm:grid-cols-2">
               {SUGGESTIONS.map((s) => (
@@ -109,21 +109,21 @@ export function CoachPage() {
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKey}
             rows={1}
-            placeholder="Écris ta question…"
-            aria-label="Message au coach"
+            placeholder="Ask your question…"
+            aria-label="Message to the coach"
             className="field-sizing-content max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-[14px] outline-none placeholder:text-subtle"
           />
           {streaming ? (
-            <Button size="icon" onClick={stop} aria-label="Arrêter">
+            <Button size="icon" onClick={stop} aria-label="Stop">
               <Square className="size-3.5 fill-current" />
             </Button>
           ) : (
-            <Button size="icon" variant="primary" onClick={() => submit()} disabled={!draft.trim()} aria-label="Envoyer">
+            <Button size="icon" variant="primary" onClick={() => submit()} disabled={!draft.trim()} aria-label="Send">
               <ArrowUp />
             </Button>
           )}
         </div>
-        <p className="mt-1.5 text-center text-[11px] text-subtle">Le coach peut se tromper — vérifie avant de modifier ton plan.</p>
+        <p className="mt-1.5 text-center text-[11px] text-subtle">The coach can be wrong — double-check before changing your plan.</p>
       </div>
     </div>
   );
@@ -159,7 +159,7 @@ function Message({ m }: { m: ChatMessage }) {
         )}
         {thinking && !m.tools?.length && (
           <div className="flex items-center gap-2 py-1 text-[13px] text-muted">
-            <Loader2 className="size-3.5 animate-spin" /> Réflexion…
+            <Loader2 className="size-3.5 animate-spin" /> Thinking…
           </div>
         )}
         {m.content && (

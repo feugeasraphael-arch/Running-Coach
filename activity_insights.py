@@ -170,17 +170,20 @@ def laps_to_splits(laps: list[dict]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Interval sessions: is this run a fractionné, which laps are the reps, and
-# were they run at the intended pace?
+# Interval sessions: is this run an interval workout, which laps are the reps,
+# and were they run at the intended pace?
 # ---------------------------------------------------------------------------
 
+# Matches both languages on purpose: the plan is in English, but activity names
+# come from Strava/Garmin the way the athlete typed them, which is French.
 INTERVAL_NAME_RE = re.compile(
-    r"\d+\s*[x×]\s*\d+|interval|fractionn|fartlek|vma|s[ée]rie|norv[ée]gien|seuil|threshold",
+    r"\d+\s*[x×]\s*\d+|interval|fartlek|vma|threshold|norwegian"
+    r"|fractionn|s[ée]rie|norv[ée]gien|seuil",
     re.IGNORECASE,
 )
 _REPS_RE = re.compile(r"(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(km|min|mn|m|'|’|sec|s)?", re.IGNORECASE)
 _PACE_RE = re.compile(r"(\d{1,2})\s*['’′:]\s*([0-5]\d)")
-_LAST_REP_RE = re.compile(r"dernier[^0-9]{0,20}(\d{1,2})\s*['’′:]\s*([0-5]\d)", re.IGNORECASE)
+_LAST_REP_RE = re.compile(r"(?:last|dernier)[^0-9]{0,20}(\d{1,2})\s*['’′:]\s*([0-5]\d)", re.IGNORECASE)
 
 # A rep can be this much (s/km) outside its target band and still count as on pace.
 PACE_GRACE_S = 3
@@ -263,8 +266,8 @@ def classify_lap_splits(splits: list[dict], expect_intervals: bool) -> bool:
     False, leaving splits untouched, for ordinary auto-lap runs.
 
     The fast/slow boundary is the largest relative speed gap between laps.
-    `expect_intervals` (name or plan says it's a fractionné) lowers how clear
-    that gap has to be."""
+    `expect_intervals` (name or plan says it's an interval session) lowers how
+    clear that gap has to be."""
     usable = [sp for sp in splits if sp["distance_m"] >= 100 and (sp["time_s"] or 0) >= 20]
     if len(usable) < 4:
         return False
@@ -298,7 +301,7 @@ def apply_pace_targets(splits: list[dict], activity_name: str, planned: Optional
     """Attach target_min/max_s_per_km and target_status ('on' | 'fast' |
     'slow') to each work split. The pace written in the activity name wins
     over the plan's (it's what was actually intended that day), and a
-    "dernier km à 4'20" override applies to the last rep only.
+    "last km at 4'20" / "dernier km à 4'20" override applies to the last rep only.
 
     Returns the session-level target {min_s_per_km, max_s_per_km, source} or None."""
     target, source = parse_pace_target(activity_name), "name"
