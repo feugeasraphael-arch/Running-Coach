@@ -6,7 +6,10 @@ weeks) since this reasons about a single activity's internal shape.
 """
 from __future__ import annotations
 
+import re
 import statistics
+from datetime import date
+from typing import Optional
 
 
 def splits_from_streams(streams: dict, split_m: float = 1000.0) -> list[dict]:
@@ -132,6 +135,8 @@ def detect_intervals(streams: dict, min_segment_s: float = 20.0) -> list[dict]:
         seg_hr = heartrate[start_idx:end_idx + 1] if heartrate else []
         seg_alt = altitude[start_idx:end_idx + 1] if altitude else []
         result.append({
+            "start_m": round(distance[start_idx], 1),
+            "end_m": round(distance[end_idx], 1),
             "distance_m": round(seg_distance, 1),
             "time_s": round(seg_time),
             "pace_s_per_km": seg_time / (seg_distance / 1000),
@@ -139,26 +144,194 @@ def detect_intervals(streams: dict, min_segment_s: float = 20.0) -> list[dict]:
             "elevation_gain_m": round(max(seg_alt) - min(seg_alt), 1) if len(seg_alt) > 1 else None,
             "kind": kind,
         })
-    return result
+    return _label_warmup_cooldown(result)
 
 
 def laps_to_splits(laps: list[dict]) -> list[dict]:
     """Normalize Strava's /laps payload into the same split shape as
     splits_from_streams, so the frontend renders either uniformly."""
-    return [
-        {
+    splits = []
+    covered = 0.0
+    for lap in laps:
+        if not lap.get("distance"):
+            continue
+        time_s = lap.get("moving_time") or lap.get("elapsed_time")
+        splits.append({
+            "start_m": round(covered, 1),
+            "end_m": round(covered + lap["distance"], 1),
             "distance_m": lap.get("distance"),
-            "time_s": lap.get("moving_time") or lap.get("elapsed_time"),
-            "pace_s_per_km": (
-                (lap.get("moving_time") or lap.get("elapsed_time")) / (lap["distance"] / 1000)
-                if lap.get("distance") else None
-            ),
+            "time_s": time_s,
+            "pace_s_per_km": time_s / (lap["distance"] / 1000) if time_s else None,
             "avg_hr": lap.get("average_heartrate"),
             "elevation_gain_m": lap.get("total_elevation_gain"),
-        }
-        for lap in laps
-        if lap.get("distance")
+        })
+        covered += lap["distance"]
+    return splits
+
+
+# ---------------------------------------------------------------------------
+# Interval sessions: is this run an interval workout, which laps are the reps,
+# and were they run at the intended pace?
+# ---------------------------------------------------------------------------
+
+# Matches both languages on purpose: the plan is in English, but activity names
+# come from Strava/Garmin the way the athlete typed them, which is French.
+INTERVAL_NAME_RE = re.compile(
+    r"\d+\s*[x×]\s*\d+|interval|fartlek|vma|threshold|norwegian"
+    r"|fractionn|s[ée]rie|norv[ée]gien|seuil",
+    re.IGNORECASE,
+)
+_REPS_RE = re.compile(r"(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(km|min|mn|m|'|’|sec|s)?", re.IGNORECASE)
+_PACE_RE = re.compile(r"(\d{1,2})\s*['’′:]\s*([0-5]\d)")
+_LAST_REP_RE = re.compile(r"(?:last|dernier)[^0-9]{0,20}(\d{1,2})\s*['’′:]\s*([0-5]\d)", re.IGNORECASE)
+
+# A rep can be this much (s/km) outside its target band and still count as on pace.
+PACE_GRACE_S = 3
+# Half-width of the band around a single pace written in an activity name ("4x4min 4'35").
+SINGLE_PACE_HALF_BAND_S = 5
+
+
+def _rep_pattern(text: str) -> Optional[str]:
+    """Normalized "NxM" rep pattern ("5x1km" and "5x1000m" -> "5x1000m",
+    "4x4min" and "4x4" -> "4x4min") so an activity can be matched to its plan entry."""
+    m = _REPS_RE.search(text or "")
+    if not m:
+        return None
+    n, size, unit = int(m.group(1)), float(m.group(2).replace(",", ".")), (m.group(3) or "").lower()
+    if unit == "km" or (unit == "" and size < 10 and "." in m.group(2).replace(",", ".")):
+        return f"{n}x{round(size * 1000)}m"
+    if unit == "m" or (unit == "" and size >= 100):
+        return f"{n}x{round(size)}m"
+    if unit in ("s", "sec"):
+        return f"{n}x{round(size)}s"
+    return f"{n}x{size:g}min"
+
+
+def parse_pace_target(text: str) -> Optional[dict]:
+    """First pace or pace range in free text: "4'40-4'50/km" -> {min_s_per_km: 280,
+    max_s_per_km: 290}; a single "4’35" becomes a +/- SINGLE_PACE_HALF_BAND_S band."""
+    # 2:30-10:00 /km only, which filters out clock times.
+    found = [(m.start(), int(m.group(1)) * 60 + int(m.group(2))) for m in _PACE_RE.finditer(text or "")]
+    found = [(pos, p) for pos, p in found if 150 <= p <= 600]
+    if not found:
+        return None
+    paces = [p for _, p in found]
+    m = re.compile(r"(\d{1,2}\s*['’′:]\s*[0-5]\d)\s*[-–à]\s*(\d{1,2}\s*['’′:]\s*[0-5]\d)").match(text, found[0][0])
+    if m:
+        ends = [int(a) * 60 + int(b) for a, b in (_PACE_RE.search(g).groups() for g in m.groups())]
+        return {"min_s_per_km": min(ends), "max_s_per_km": max(ends)}
+    return {"min_s_per_km": paces[0] - SINGLE_PACE_HALF_BAND_S, "max_s_per_km": paces[0] + SINGLE_PACE_HALF_BAND_S}
+
+
+def match_planned_interval(conn, activity: dict) -> Optional[dict]:
+    """The plan's interval session this run most likely was: same day, or
+    within 3 days when the rep pattern matches (sessions often get shifted a
+    day or two from the calendar)."""
+    day = (activity.get("start_time") or "")[:10]
+    if not day:
+        return None
+    rows = [
+        dict(r) for r in conn.execute(
+            """SELECT date, title, pace_target, notes FROM planned_workouts
+               WHERE workout_type = 'interval' AND date BETWEEN date(?, '-3 days') AND date(?, '+3 days')""",
+            (day, day),
+        ).fetchall()
     ]
+    pattern = _rep_pattern(activity.get("name") or "")
+    same_day = [r for r in rows if r["date"] == day]
+    same_pattern = [r for r in rows if pattern and _rep_pattern(r["title"]) == pattern]
+    candidates = same_pattern or same_day
+    if not candidates:
+        return None
+    return min(candidates, key=lambda r: abs((date.fromisoformat(r["date"]) - date.fromisoformat(day)).days))
+
+
+def _label_warmup_cooldown(splits: list[dict]) -> list[dict]:
+    """Recovery-type segments before the first rep / after the last one are
+    the warm-up and cool-down, not recoveries."""
+    work_idx = [i for i, sp in enumerate(splits) if sp.get("kind") == "work"]
+    if not work_idx:
+        return splits
+    for i, sp in enumerate(splits):
+        if sp.get("kind") == "work":
+            continue
+        sp["kind"] = "warmup" if i < work_idx[0] else "cooldown" if i > work_idx[-1] else "recovery"
+    return splits
+
+
+def classify_lap_splits(splits: list[dict], expect_intervals: bool) -> bool:
+    """Tag lap splits as work/recovery/warmup/cooldown in place when the laps
+    look like a structured session (the usual shape of a Garmin workout: a
+    warm-up lap, then fast reps alternating with slow recoveries). Returns
+    False, leaving splits untouched, for ordinary auto-lap runs.
+
+    The fast/slow boundary is the largest relative speed gap between laps.
+    `expect_intervals` (name or plan says it's an interval session) lowers how
+    clear that gap has to be."""
+    usable = [sp for sp in splits if sp["distance_m"] >= 100 and (sp["time_s"] or 0) >= 20]
+    if len(usable) < 4:
+        return False
+    speeds = sorted(sp["distance_m"] / sp["time_s"] for sp in usable)
+    gap, cut = max((speeds[i + 1] / speeds[i], (speeds[i] + speeds[i + 1]) / 2) for i in range(len(speeds) - 1))
+    if gap < (1.06 if expect_intervals else 1.12):
+        return False
+
+    usable_ids = {id(sp) for sp in usable}
+    is_work = [id(sp) in usable_ids and sp["distance_m"] / sp["time_s"] > cut for sp in splits]
+    work_positions = [i for i, w in enumerate(is_work) if w]
+    if len(work_positions) < 2:
+        return False
+    # Reps alternate with recoveries: two work laps back to back means this is
+    # a progression / fast finish, not intervals.
+    if any(b - a < 2 for a, b in zip(work_positions, work_positions[1:])):
+        return False
+    # Uniform auto-laps (every lap ~1 km) can't delimit reps.
+    if not expect_intervals:
+        dists = [sp["distance_m"] for sp in usable]
+        if max(dists) - min(dists) < 0.03 * max(dists):
+            return False
+
+    for sp, w in zip(splits, is_work):
+        sp["kind"] = "work" if w else "recovery"
+    _label_warmup_cooldown(splits)
+    return True
+
+
+def apply_pace_targets(splits: list[dict], activity_name: str, planned: Optional[dict]) -> Optional[dict]:
+    """Attach target_min/max_s_per_km and target_status ('on' | 'fast' |
+    'slow') to each work split. The pace written in the activity name wins
+    over the plan's (it's what was actually intended that day), and a
+    "last km at 4'20" / "dernier km à 4'20" override applies to the last rep only.
+
+    Returns the session-level target {min_s_per_km, max_s_per_km, source} or None."""
+    target, source = parse_pace_target(activity_name), "name"
+    if not target and planned:
+        target, source = parse_pace_target(planned.get("pace_target") or planned.get("title") or ""), "plan"
+    if not target:
+        return None
+
+    last_override = None
+    m = _LAST_REP_RE.search(activity_name or "")
+    if m and source == "name":
+        p = int(m.group(1)) * 60 + int(m.group(2))
+        last_override = {"min_s_per_km": p - SINGLE_PACE_HALF_BAND_S, "max_s_per_km": p + SINGLE_PACE_HALF_BAND_S}
+        # The first pace in the name might *be* the last-rep pace if it's the only one.
+        if target == last_override and len(_PACE_RE.findall(activity_name)) == 1:
+            last_override = None
+
+    work = [sp for sp in splits if sp.get("kind") == "work"]
+    for i, sp in enumerate(work):
+        t = last_override if (last_override and i == len(work) - 1) else target
+        sp["target_min_s_per_km"], sp["target_max_s_per_km"] = t["min_s_per_km"], t["max_s_per_km"]
+        p = sp.get("pace_s_per_km")
+        if p is None:
+            continue
+        sp["target_status"] = (
+            "fast" if p < t["min_s_per_km"] - PACE_GRACE_S
+            else "slow" if p > t["max_s_per_km"] + PACE_GRACE_S
+            else "on"
+        )
+    return {**target, "source": source}
 
 
 def generate_commentary(activity: dict, splits: list[dict], baseline_runs: list[dict]) -> list[str]:

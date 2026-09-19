@@ -25,11 +25,124 @@ import requests
 from dotenv import dotenv_values, load_dotenv
 
 import db
-from strava_client import ACTIVITIES_URL, ENV_PATH, ensure_env_file, get_access_token, get_gear
+import hr_zones
+from strava_client import (
+    ACTIVITIES_URL,
+    ENV_PATH,
+    ensure_env_file,
+    get_access_token,
+    get_activity_best_efforts,
+    get_activity_streams,
+    get_athlete_hr_zones,
+    get_gear,
+)
 
 # Strava activity "type" values that represent running (sport_type is the
 # newer, more granular field; `type` is the legacy one — we normalize both).
 _RUN_TYPES = {"run", "trailrun", "trail_run"}
+
+# Only the standard race distances the dashboard reports on -- Strava returns
+# many more (400m, 1K, 1 mile, ...) that we don't need to store.
+_BEST_EFFORT_NAMES = {"5K", "10K", "Half-Marathon", "Marathon"}
+
+
+def _sync_best_efforts(conn, access_token: str, activity_ids: list[str]) -> int:
+    """Fetch and store Strava's official best_efforts for each given
+    `activities.id`. Best-effort in the error-handling sense too: a rate
+    limit or a single bad activity stops the loop rather than failing the
+    whole sync, since this is a nice-to-have layered on top of the core
+    activity sync above."""
+    synced = 0
+    for activity_id in activity_ids:
+        external_id = activity_id.split("_", 1)[1]
+        try:
+            efforts = get_activity_best_efforts(access_token, external_id)
+        except RuntimeError:
+            break  # rate limited
+        for e in efforts:
+            if e.get("name") not in _BEST_EFFORT_NAMES:
+                continue
+            db.upsert_best_effort(conn, {
+                "activity_id": activity_id,
+                "name": e["name"],
+                "distance_m": e.get("distance"),
+                "moving_time_s": e.get("moving_time"),
+                "elapsed_time_s": e.get("elapsed_time"),
+                "start_date": e.get("start_date"),
+            })
+        synced += 1
+    conn.commit()
+    return synced
+
+
+def backfill_best_efforts() -> None:
+    """One-off (or re-run-when-needed) catch-up: fetch best_efforts for every
+    run/trail_run activity already in the DB, not just newly-synced ones.
+    Needed once when this feature was added, since `sync()` below only does
+    this for activities it just inserted."""
+    load_dotenv(ENV_PATH)
+    access_token = get_access_token()
+    conn = db.get_connection()
+    ids = [
+        r["id"] for r in conn.execute(
+            "SELECT id FROM activities WHERE source = 'strava' AND sport_type IN ('run', 'trail_run')"
+        ).fetchall()
+    ]
+    synced = _sync_best_efforts(conn, access_token, ids)
+    conn.close()
+    print(f"Best-efforts backfill: {synced}/{len(ids)} activities processed.")
+
+
+def _sync_hr_zones(conn, access_token: str) -> bool:
+    try:
+        zones = get_athlete_hr_zones(access_token)
+    except (RuntimeError, requests.HTTPError):
+        return False
+    if zones:
+        db.replace_hr_zones(conn, hr_zones.strava_zones_to_rows(zones))
+        conn.commit()
+    return bool(zones)
+
+
+def _sync_hr_series(conn, access_token: str, limit: int | None = None) -> int:
+    """Cache a compact HR series for runs that don't have one yet, newest
+    first (one streams call per run). Capped per sync and stops at the first
+    rate limit, so the backlog is worked through over successive syncs
+    instead of burning the whole 15-minute Strava quota at once."""
+    ids = [
+        r["id"] for r in conn.execute(
+            """SELECT a.id FROM activities a
+               LEFT JOIN activity_hr_series s ON s.activity_id = a.id
+               WHERE a.source = 'strava' AND a.sport_type IN ('run', 'trail_run') AND s.activity_id IS NULL
+               ORDER BY a.start_time DESC"""
+        ).fetchall()
+    ]
+    synced = 0
+    for activity_id in ids[:limit]:
+        try:
+            streams = get_activity_streams(access_token, activity_id.split("_", 1)[1])
+        except (RuntimeError, requests.HTTPError):
+            break
+        db.upsert_hr_series(conn, activity_id, hr_zones.SERIES_STEP_S, hr_zones.resample_hr(streams))
+        conn.commit()
+        synced += 1
+    return synced
+
+
+def backfill_hr_series() -> None:
+    """Fetch HR series for every run still missing one (stops at Strava's
+    rate limit -- just re-run it 15 minutes later to continue)."""
+    load_dotenv(ENV_PATH)
+    access_token = get_access_token()
+    conn = db.get_connection()
+    _sync_hr_zones(conn, access_token)
+    synced = _sync_hr_series(conn, access_token)
+    missing = conn.execute(
+        """SELECT COUNT(*) FROM activities a LEFT JOIN activity_hr_series s ON s.activity_id = a.id
+           WHERE a.source = 'strava' AND a.sport_type IN ('run', 'trail_run') AND s.activity_id IS NULL"""
+    ).fetchone()[0]
+    conn.close()
+    print(f"HR series backfill: {synced} run(s) fetched, {missing} still missing.")
 
 
 def _normalize_sport_type(activity: dict) -> str:
@@ -98,6 +211,7 @@ def sync() -> None:
     latest_start = cursor
     earliest_start = None
     gear_ids = set()
+    new_run_ids = []
 
     while True:
         params = {"page": page, "per_page": per_page}
@@ -125,11 +239,17 @@ def sync() -> None:
                 earliest_start = start
             if row["gear_id"]:
                 gear_ids.add(row["gear_id"])
+            if row["sport_type"] in _RUN_TYPES:
+                new_run_ids.append(row["id"])
 
         conn.commit()
         if len(activities) < per_page:
             break
         page += 1
+
+    efforts_synced = _sync_best_efforts(conn, access_token, new_run_ids)
+    _sync_hr_zones(conn, access_token)
+    hr_synced = _sync_hr_series(conn, access_token, limit=30)
 
     if latest_start:
         db.set_sync_cursor(conn, "strava", latest_start)
@@ -162,12 +282,20 @@ def sync() -> None:
     conn.close()
 
     if total == 0:
-        print(f"Strava sync: no new activities ({gear_synced} gear record(s) refreshed).")
+        print(f"Strava sync: no new activities ({gear_synced} gear record(s) refreshed, HR data for {hr_synced} run(s)).")
     else:
         span = f"{earliest_start} to {latest_start}" if earliest_start else latest_start
-        print(f"Strava sync: {total} activities upserted ({span}), {gear_synced} gear record(s) refreshed.")
+        print(
+            f"Strava sync: {total} activities upserted ({span}), {gear_synced} gear record(s) refreshed, "
+            f"best efforts fetched for {efforts_synced}/{len(new_run_ids)} new run(s), HR data for {hr_synced} run(s)."
+        )
 
 
 if __name__ == "__main__":
     ensure_env_file()
-    sync()
+    if len(sys.argv) > 1 and sys.argv[1] == "--backfill-efforts":
+        backfill_best_efforts()
+    elif len(sys.argv) > 1 and sys.argv[1] == "--backfill-hr":
+        backfill_hr_series()
+    else:
+        sync()

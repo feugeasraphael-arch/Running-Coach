@@ -225,8 +225,20 @@ def get_gear_status(conn) -> dict:
 
 
 def get_recovery_status(conn) -> dict:
-    """Latest wellness reading vs. the trailing 7-day average of prior days."""
-    rows = conn.execute("SELECT * FROM wellness ORDER BY date DESC LIMIT 8").fetchall()
+    """Latest COMPLETE day's wellness reading vs. the trailing 7-day average
+    of the days before it.
+
+    Deliberately excludes today even once it has a row: body_battery_high is
+    an intraday running max, so a same-day reading is still accumulating and
+    will almost always look "lower" than a full week of complete days simply
+    because the day isn't over yet -- not because anything has actually
+    changed. Anchoring on the last complete day keeps the comparison
+    apples-to-apples regardless of what time of day this is called.
+    """
+    today = datetime.utcnow().date().isoformat()
+    rows = conn.execute(
+        "SELECT * FROM wellness WHERE date < ? ORDER BY date DESC LIMIT 8", (today,)
+    ).fetchall()
 
     if not rows:
         return {"status": "no_data", "detail": "No Garmin wellness data synced yet."}
@@ -304,32 +316,44 @@ def get_wellness_trend(conn, days: int = 90) -> list[dict]:
     ]
 
 
-# Standard race distances (meters) we predict/report times for.
+# Standard race distances (meters) we predict/report times for, and the
+# matching name Strava uses in its own best_efforts (see best_efforts table).
 _RACE_DISTANCES = [
-    ("5K", 5000.0),
-    ("10K", 10000.0),
-    ("Half Marathon", 21097.5),
-    ("Marathon", 42195.0),
+    ("5K", 5000.0, "5K"),
+    ("10K", 10000.0, "10K"),
+    ("Half Marathon", 21097.5, "Half-Marathon"),
+    ("Marathon", 42195.0, "Marathon"),
 ]
 _RIEGEL_EXPONENT = 1.06  # standard Riegel endurance-fatigue exponent
 
 
 def get_race_predictions(conn, days: int = 120) -> dict:
     """Real recorded best time per standard distance (within +/-3%, "what you
-    actually ran"), plus a Riegel-formula prediction for every distance based
-    on your single best recent effort (the run with the fastest 5K-equivalent
+    actually ran") — an all-time PR lookup, not limited to `days` — plus a
+    Riegel-formula prediction for every distance based on your single best
+    effort within the last `days` (the run with the fastest 5K-equivalent
     pace) — the same method Strava/most race calculators use, not a model
     fit to your data specifically.
     """
-    start = (datetime.utcnow().date() - timedelta(days=days)).isoformat()
-    rows = conn.execute(
+    all_time_rows = conn.execute(
         """SELECT name, start_time, distance_m, moving_time_s FROM activities
-           WHERE sport_type = 'run' AND start_time >= ? AND distance_m > 1000 AND moving_time_s > 0""",
-        (start,),
+           WHERE sport_type = 'run' AND distance_m > 1000 AND moving_time_s > 0""",
     ).fetchall()
 
+    start = (datetime.utcnow().date() - timedelta(days=days)).isoformat()
+    rows = [r for r in all_time_rows if r["start_time"] >= start]
+
     if not rows:
-        return {"reference": None, "predictions": [{"label": l, "distance_m": d, "real_time_s": None, "real_date": None, "predicted_time_s": None} for l, d in _RACE_DISTANCES]}
+        predictions = [
+            {
+                "label": l,
+                "distance_m": d,
+                **_best_real_time(conn, all_time_rows, d, strava_name),
+                "predicted_time_s": None,
+            }
+            for l, d, strava_name in _RACE_DISTANCES
+        ]
+        return {"reference": None, "predictions": predictions}
 
     # Riegel extrapolation assumes the reference is itself a genuine
     # sustained effort — a single fast 1km interval rep isn't representative
@@ -352,24 +376,49 @@ def get_race_predictions(conn, days: int = 120) -> dict:
     }
 
     predictions = []
-    for label, dist in _RACE_DISTANCES:
+    for label, dist, strava_name in _RACE_DISTANCES:
         predicted_time_s = best_ref["moving_time_s"] * (dist / best_ref["distance_m"]) ** _RIEGEL_EXPONENT
-
-        candidates = [r for r in rows if abs(r["distance_m"] - dist) / dist <= 0.03]
-        real_time_s = real_date = None
-        if candidates:
-            best_real = min(candidates, key=lambda r: r["moving_time_s"])
-            real_time_s, real_date = best_real["moving_time_s"], best_real["start_time"]
-
         predictions.append({
             "label": label,
             "distance_m": dist,
-            "real_time_s": real_time_s,
-            "real_date": real_date,
+            **_best_real_time(conn, all_time_rows, dist, strava_name),
             "predicted_time_s": round(predicted_time_s),
         })
 
     return {"reference": reference, "predictions": predictions}
+
+
+def _best_real_time(conn, rows, dist: float, strava_name: str) -> dict:
+    """All-time PR for `dist`, taking the best of two sources:
+
+    1. Strava's own best_efforts (see schema.sql) -- a proper sliding-window
+       best segment within each run, e.g. a run's fastest 5K can start
+       partway through it, not just from the start. This is what Strava
+       itself shows as your PR, and is the accurate source whenever it's
+       available.
+    2. A naive whole-activity distance match (within +/-3% of `dist`) as a
+       fallback, so Garmin-sourced runs (no Strava best_efforts) or Strava
+       runs not yet backfilled (see ingest_strava.py --backfill-efforts)
+       still contribute a real time instead of being silently dropped.
+    """
+    candidates: list[tuple[int, str | None]] = []
+
+    best_effort = conn.execute(
+        "SELECT moving_time_s, start_date FROM best_efforts WHERE name = ? ORDER BY moving_time_s ASC LIMIT 1",
+        (strava_name,),
+    ).fetchone()
+    if best_effort:
+        candidates.append((best_effort["moving_time_s"], best_effort["start_date"]))
+
+    naive_matches = [r for r in rows if abs(r["distance_m"] - dist) / dist <= 0.03]
+    if naive_matches:
+        best_naive = min(naive_matches, key=lambda r: r["moving_time_s"])
+        candidates.append((best_naive["moving_time_s"], best_naive["start_time"]))
+
+    if not candidates:
+        return {"real_time_s": None, "real_date": None}
+    best_time_s, best_date = min(candidates, key=lambda c: c[0])
+    return {"real_time_s": best_time_s, "real_date": best_date}
 
 
 def get_plan_status(conn, weeks_back: int = 8, weeks_forward: int = 3) -> dict:

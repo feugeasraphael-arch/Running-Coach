@@ -4,6 +4,7 @@ applies schema.sql.
 """
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from pathlib import Path
@@ -102,6 +103,37 @@ def upsert_strava_prediction(conn: sqlite3.Connection, prediction: dict) -> None
         f"""INSERT INTO strava_predictions ({", ".join(columns)}) VALUES ({placeholders})
             ON CONFLICT(period_date, distance_label) DO UPDATE SET {updates}""",
         {c: prediction.get(c) for c in columns},
+    )
+
+
+def upsert_best_effort(conn: sqlite3.Connection, effort: dict) -> None:
+    """effort must match the `best_efforts` table columns."""
+    columns = ["activity_id", "name", "distance_m", "moving_time_s", "elapsed_time_s", "start_date"]
+    placeholders = ", ".join(f":{c}" for c in columns)
+    updates = ", ".join(f"{c}=excluded.{c}" for c in columns if c not in ("activity_id", "name"))
+    conn.execute(
+        f"""INSERT INTO best_efforts ({", ".join(columns)}, synced_at) VALUES ({placeholders}, datetime('now'))
+            ON CONFLICT(activity_id, name) DO UPDATE SET {updates}, synced_at=excluded.synced_at""",
+        {c: effort.get(c) for c in columns},
+    )
+
+
+def replace_hr_zones(conn: sqlite3.Connection, zones: list[dict]) -> None:
+    """zones: [{zone, min_bpm, max_bpm}, ...] -- replaces the whole set."""
+    conn.execute("DELETE FROM hr_zones")
+    conn.executemany(
+        "INSERT INTO hr_zones (zone, min_bpm, max_bpm) VALUES (:zone, :min_bpm, :max_bpm)",
+        zones,
+    )
+
+
+def upsert_hr_series(conn: sqlite3.Connection, activity_id: str, step_s: int, hr: list) -> None:
+    conn.execute(
+        """INSERT INTO activity_hr_series (activity_id, step_s, hr_json, synced_at)
+           VALUES (?, ?, ?, datetime('now'))
+           ON CONFLICT(activity_id) DO UPDATE SET step_s=excluded.step_s, hr_json=excluded.hr_json,
+                                                  synced_at=excluded.synced_at""",
+        (activity_id, step_s, json.dumps(hr, separators=(",", ":"))),
     )
 
 

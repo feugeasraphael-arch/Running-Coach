@@ -106,6 +106,45 @@ CREATE TABLE IF NOT EXISTS strava_predictions (
 
 CREATE INDEX IF NOT EXISTS idx_strava_predictions_period ON strava_predictions (period_date);
 
+-- Strava's own "Best Efforts" per run (GET /activities/{id}?include_all_efforts=true).
+-- This is Strava's sliding-window best-segment computation -- e.g. a run's
+-- best 5K effort can start partway through the activity, not just from the
+-- start -- so it's the authoritative source for real PRs, not something we
+-- can derive from an activity's total distance/time. One row per
+-- (activity_id, name); re-ingesting the same activity just refreshes it.
+CREATE TABLE IF NOT EXISTS best_efforts (
+    activity_id         TEXT NOT NULL,        -- references activities.id
+    name                TEXT NOT NULL,        -- Strava's own label, e.g. '5K', '10K', 'Half-Marathon'
+    distance_m          REAL NOT NULL,
+    moving_time_s        INTEGER NOT NULL,
+    elapsed_time_s       INTEGER,
+    start_date          TEXT,
+    synced_at           TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (activity_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_best_efforts_name ON best_efforts (name);
+
+-- Athlete heart-rate zones as configured on Strava (GET /athlete/zones).
+-- One row per zone, 1-based; max_bpm NULL for the open-ended top zone.
+CREATE TABLE IF NOT EXISTS hr_zones (
+    zone                INTEGER PRIMARY KEY,
+    min_bpm             REAL NOT NULL,
+    max_bpm             REAL,
+    synced_at           TEXT DEFAULT (datetime('now'))
+);
+
+-- Compact per-activity heart-rate series (resampled to a fixed step from
+-- Strava's heartrate stream), so the activity list can draw a time-in-zone
+-- bar per run without one Strava streams call per row. Zones are applied at
+-- read time, so changing zone settings on Strava recolours history too.
+CREATE TABLE IF NOT EXISTS activity_hr_series (
+    activity_id         TEXT PRIMARY KEY,     -- references activities.id
+    step_s              INTEGER NOT NULL,
+    hr_json             TEXT NOT NULL,        -- JSON array of bpm (null where no reading); [] = activity has no HR
+    synced_at           TEXT DEFAULT (datetime('now'))
+);
+
 -- Per-recipe like/dislike, keyed by the recipe "id" field in cook_data.json.
 -- A missing row means "no opinion yet" -- cook.py treats that as neutral.
 CREATE TABLE IF NOT EXISTS recipe_ratings (

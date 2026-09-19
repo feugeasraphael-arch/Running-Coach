@@ -182,6 +182,40 @@ def get_gear(access_token: str, gear_id: str) -> dict:
     return resp.json()
 
 
+def get_activity_best_efforts(access_token: str, external_id: str) -> list[dict]:
+    """Strava's own sliding-window best-segment computation for this run
+    (e.g. its fastest 5K, which can start partway through the activity, not
+    just from the start) -- only present on the detailed activity resource,
+    not the summary one used for bulk listing. Returns [] for non-runs or
+    activities too short to have any standard-distance effort."""
+    resp = requests.get(
+        f"https://www.strava.com/api/v3/activities/{external_id}",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={"include_all_efforts": "true"},
+        timeout=30,
+    )
+    if resp.status_code == 429:
+        raise RuntimeError("Strava rate limit hit fetching best efforts.")
+    if resp.status_code == 404:
+        return []
+    resp.raise_for_status()
+    return resp.json().get("best_efforts", [])
+
+
+def get_athlete_hr_zones(access_token: str) -> list[dict]:
+    """The athlete's heart-rate zones as [{min, max}, ...] (max == -1 for the
+    open-ended top zone). [] if the athlete has none configured."""
+    resp = requests.get(
+        "https://www.strava.com/api/v3/athlete/zones",
+        headers={"Authorization": f"Bearer {access_token}"},
+        timeout=30,
+    )
+    if resp.status_code == 429:
+        raise RuntimeError("Strava rate limit hit fetching athlete zones.")
+    resp.raise_for_status()
+    return (resp.json().get("heart_rate") or {}).get("zones") or []
+
+
 def get_activity_laps(access_token: str, external_id: str) -> list[dict]:
     resp = requests.get(
         f"https://www.strava.com/api/v3/activities/{external_id}/laps",
