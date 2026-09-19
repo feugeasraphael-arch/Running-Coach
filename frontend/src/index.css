@@ -1,97 +1,134 @@
 @import "tailwindcss";
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/archivo";
+@import "@fontsource-variable/jetbrains-mono";
 
-/* Design tokens. Light is the base; dark follows the OS setting. Components
-   only use the semantic utilities generated below (bg-surface, text-muted,
-   stroke chart colors via var(--chart-*)), never raw hex values. */
+/* Design tokens — "Instrument".
+ *
+ * Dark is the base; light is an explicit opt-in on :root[data-theme="light"],
+ * chosen with the header toggle and remembered in localStorage. The OS setting
+ * is deliberately NOT consulted: the app has one intended look and the athlete
+ * picks the other.
+ *
+ * Components only ever use the semantic utilities generated below (bg-surface,
+ * text-muted, border-line) or lib/scales.ts for the domain ramps. Never a raw
+ * hex, and never a CSS variable name built at runtime — scales.ts exists so the
+ * type checker can see those names.
+ */
 :root {
-  --bg: #f5f6f8;
-  --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --line: #e3e6eb;
-  --line-strong: #d2d7de;
-  --fg: #0f1216;
-  --muted: #5f6873;
-  --subtle: #8a929c;
+  color-scheme: dark;
 
-  --accent: #3b6cf6;
+  --bg: #0a0c0b;
+  --surface: #0e110f;
+  --surface-2: #151a17;
+  --line: #212724;
+  --line-strong: #3a423e;
+  --fg: #e2e7e3;
+  --muted: #8b9691;
+  --subtle: #767f7a;
+
+  --accent: #e9a13b;
+  --accent-fg: #0a0c0b;
+  --accent-soft: color-mix(in oklab, var(--accent) 18%, transparent);
+
+  --good: #56c08d;
+  --warn: #e8c547;
+  --bad: #e2564a;
+  --info: #5b9bf0;
+
+  /* Scrim behind a dialog. A plain black wash is useless on a near-black
+     ground, so the dialog surface lifts to --surface-2 and keeps its border. */
+  --scrim: rgb(0 0 0 / 0.66);
+
+  --chart-1: #e9a13b; /* distance / pace */
+  --chart-2: #e2564a; /* heart rate */
+  --chart-3: #a78bfa; /* sleep / VO2max */
+  --chart-4: #56c08d; /* body battery */
+  --chart-5: #5b9bf0; /* stress / cadence */
+  --grid: #1c2220;
+
+  /* Effort ramp. It climbs away from the accent's amber into red so that "this
+     day was hard" never reads as "this is clickable". --heat-0 is a rest day
+     and must stay visibly above --surface, because a FUTURE day draws no cell
+     at all and shows --surface through: the grid has seven states, not six. */
+  --heat-0: #191e1b;
+  --heat-1: #33281f;
+  --heat-2: #5c3b24;
+  --heat-3: #8a4a25;
+  --heat-4: #b85226;
+  --heat-5: #e2563b;
+
+  /* Heart-rate zones Z1-Z5 (grey, blue, green, orange, red, as on
+     Garmin/Strava). The athlete checks these against their watch, so the
+     convention outranks the palette. */
+  --zone-1: #6e7873;
+  --zone-2: #5b9bf0;
+  --zone-3: #56c08d;
+  --zone-4: #e9a13b;
+  --zone-5: #e2564a;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.45);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f4f5f3;
+  --surface: #ffffff;
+  --surface-2: #eceeeb;
+  --line: #dde0db;
+  --line-strong: #c3c8c1;
+  --fg: #12160f;
+  --muted: #5b635c;
+  --subtle: #767f76;
+
+  --accent: #9a5b08;
   --accent-fg: #ffffff;
   --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
 
-  --good: #0f9f6e;
-  --warn: #d4860b;
-  --bad: #e0445a;
-  --info: #3b6cf6;
+  --good: #0f7a4f;
+  --warn: #8a6a00;
+  --bad: #c23b2e;
+  --info: #1f5fc0;
 
-  --chart-1: #3b6cf6; /* distance / pace */
-  --chart-2: #e0445a; /* heart rate */
-  --chart-3: #7c5cf0; /* sleep / VO2max */
-  --chart-4: #0f9f6e; /* body battery */
-  --chart-5: #d4860b; /* stress / cadence */
-  --grid: #e9ecf0;
+  --scrim: rgb(16 20 26 / 0.45);
 
-  --heat-0: #eceff3;
-  --heat-1: #fde2c8;
-  --heat-2: #fbb57a;
-  --heat-3: #f68a3c;
-  --heat-4: #e2621a;
-  --heat-5: #a83e0c;
+  --chart-1: #9a5b08;
+  --chart-2: #c23b2e;
+  --chart-3: #6d4ad0;
+  --chart-4: #0f7a4f;
+  --chart-5: #1f5fc0;
+  --grid: #e6e9e4;
 
-  /* Heart-rate zones Z1-Z5 (grey, blue, green, orange, red, as on Garmin/Strava). */
-  --zone-1: #a3acb7;
-  --zone-2: #4a86f0;
-  --zone-3: #1fab76;
-  --zone-4: #f0960f;
-  --zone-5: #e0445a;
+  --heat-0: #e7eae5;
+  --heat-1: #f3d9bd;
+  --heat-2: #e8ab75;
+  --heat-3: #d4803f;
+  --heat-4: #b8561f;
+  --heat-5: #8f3314;
 
-  --shadow-card: 0 1px 2px rgb(16 20 26 / 0.04), 0 4px 16px -8px rgb(16 20 26 / 0.08);
-}
+  --zone-1: #98a09a;
+  --zone-2: #2f6fd0;
+  --zone-3: #0f7a4f;
+  --zone-4: #a9670a;
+  --zone-5: #c23b2e;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0a0c0f;
-    --surface: #121519;
-    --surface-2: #191d22;
-    --line: #22272e;
-    --line-strong: #2e343c;
-    --fg: #e9ecef;
-    --muted: #949ca6;
-    --subtle: #6b737d;
-
-    --accent: #6b8fff;
-    --accent-fg: #0a0c0f;
-
-    --good: #34d399;
-    --warn: #fbbf24;
-    --bad: #fb7185;
-    --info: #6b8fff;
-
-    --chart-1: #6b8fff;
-    --chart-2: #fb7185;
-    --chart-3: #a78bfa;
-    --chart-4: #34d399;
-    --chart-5: #fbbf24;
-    --grid: #1c2026;
-
-    --heat-0: #181c21;
-    --heat-1: #4a2a14;
-    --heat-2: #7a3c10;
-    --heat-3: #b8540f;
-    --heat-4: #ec7a22;
-    --heat-5: #ffac5e;
-
-    --zone-1: #6f7883;
-    --zone-2: #6b9bff;
-    --zone-3: #34d399;
-    --zone-4: #fbb13c;
-    --zone-5: #fb7185;
-
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
-  }
+  --shadow-card: 0 1px 2px rgb(16 20 26 / 0.05), 0 4px 16px -8px rgb(16 20 26 / 0.1);
 }
 
 @theme inline {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Archivo Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Instrument is square. Redefining Tailwind's own radius scale turns every
+     existing rounded-lg / rounded-xl / rounded-2xl sharp at once, instead of
+     editing 67 call sites. rounded-full is untouched, so dots stay round. */
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
 
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -108,6 +145,7 @@
   --color-warn: var(--warn);
   --color-bad: var(--bad);
   --color-info: var(--info);
+  --color-scrim: var(--scrim);
 
   --shadow-card: var(--shadow-card);
 
@@ -124,16 +162,18 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+/* No translate here: Dialog positions itself with -translate-x-1/2 utilities,
+   which Tailwind v4 compiles to the `translate` property. `transform` and
+   `translate` compose rather than override, so a translate in this keyframe
+   double-offsets the dialog for the length of the animation and then snaps. */
 @keyframes scale-in {
-  from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
-  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  from { opacity: 0; scale: 0.97; }
+  to { opacity: 1; scale: 1; }
 }
 
 @layer base {
   html {
-    color-scheme: light dark;
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: "cv11", "ss01";
   }
   body {
     @apply bg-bg text-fg font-sans text-sm;
@@ -151,6 +191,36 @@
   .tnum {
     font-variant-numeric: tabular-nums;
   }
+  /* Measured values read as instrument output, not as prose. */
+  .readout {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+}
+
+/* Theme crossfade. The class is added to <html> only for the length of the
+   switch, so nothing else in the app pays for a transition it did not ask for
+   — and the first paint is never animated. */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition:
+    background-color 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    fill 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    outline-color 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-delay: 0ms !important;
 }
 
 /* Recharts: keep focus rings off SVG surfaces (keyboard focus is shown on
@@ -164,6 +234,35 @@
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+  .theme-transition,
+  .theme-transition *,
+  .theme-transition *::before,
+  .theme-transition *::after {
+    transition: none !important;
+  }
+}
+
+/* Paper is white whatever the screen is doing. Browsers drop backgrounds when
+   printing but keep text colour, so a dark theme would otherwise print as pale
+   grey on white — the shopping list and the plan are the pages people print. */
+@media print {
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f2f2f2;
+    --line: #cccccc;
+    --line-strong: #999999;
+    --fg: #000000;
+    --muted: #333333;
+    --subtle: #555555;
+    --accent: #7a4700;
+    --accent-fg: #ffffff;
+    --shadow-card: none;
+  }
+  body {
+    background: #ffffff;
+  }
 }
 
 /* Markdown rendered from the AI coach. */
@@ -176,12 +275,20 @@
 .coach-prose strong { font-weight: 600; }
 .coach-prose em { font-style: italic; }
 .coach-prose h1, .coach-prose h2, .coach-prose h3 { font-weight: 600; font-size: 15px; margin-top: 1.1em; }
+.coach-prose h4, .coach-prose h5, .coach-prose h6 { font-weight: 600; font-size: 14px; margin-top: 1em; color: var(--muted); }
 .coach-prose ul { list-style: disc; padding-left: 1.25em; }
 .coach-prose ol { list-style: decimal; padding-left: 1.25em; }
 .coach-prose li + li { margin-top: 0.25em; }
 .coach-prose li::marker { color: var(--subtle); }
+.coach-prose li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.25em; }
+.coach-prose input[type="checkbox"] { margin-right: 0.5em; accent-color: var(--accent); }
 .coach-prose a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
-.coach-prose code { font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+.coach-prose img { max-width: 100%; height: auto; border: 1px solid var(--line); }
+.coach-prose code { font-family: var(--font-mono); font-size: 0.88em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 2px; }
+/* A fenced block must not inherit the inline-code pill, or one flat panel is
+   drawn behind the whole listing — and it needs its own scroller. */
+.coach-prose pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: 3px; padding: 0.75em 0.9em; overflow-x: auto; }
+.coach-prose pre code { background: none; padding: 0; font-size: 0.85em; }
 .coach-prose blockquote { border-left: 2px solid var(--line-strong); padding-left: 0.9em; color: var(--muted); }
 .coach-prose table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; display: block; overflow-x: auto; }
 .coach-prose th, .coach-prose td { border-bottom: 1px solid var(--line); padding: 0.4em 0.75em 0.4em 0; text-align: left; white-space: nowrap; }

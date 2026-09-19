@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Activity, CalendarCheck, ChefHat, LayoutDashboard, Sparkles } from "lucide-react";
 import { SyncButton } from "./SyncButton";
+import { ThemeToggle } from "./ThemeToggle";
 import { cn } from "@/lib/cn";
 
 const NAV = [
@@ -46,7 +47,8 @@ export function AppShell() {
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            <ThemeToggle />
             <SyncButton />
           </div>
         </div>

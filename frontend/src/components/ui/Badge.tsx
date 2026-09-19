@@ -4,17 +4,17 @@ import { cn } from "@/lib/cn";
 export type Tone = "neutral" | "good" | "warn" | "bad" | "info" | "accent";
 
 const tones: Record<Tone, string> = {
-  neutral: "bg-surface-2 text-muted",
-  good: "bg-good/12 text-good",
-  warn: "bg-warn/14 text-warn",
-  bad: "bg-bad/12 text-bad",
-  info: "bg-info/12 text-info",
-  accent: "bg-accent-soft text-accent",
+  neutral: "border-line bg-surface-2 text-muted",
+  good: "border-good/35 bg-good/12 text-good",
+  warn: "border-warn/35 bg-warn/14 text-warn",
+  bad: "border-bad/35 bg-bad/12 text-bad",
+  info: "border-info/35 bg-info/12 text-info",
+  accent: "border-accent/40 bg-accent-soft text-accent",
 };
 
 export function Badge({ tone = "neutral", dot, className, children }: { tone?: Tone; dot?: boolean; className?: string; children: ReactNode }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", tones[tone], className)}>
+    <span className={cn("label-mono inline-flex items-center gap-1.5 rounded-[2px] border px-1.5 py-0.5 whitespace-nowrap", tones[tone], className)}>
       {dot && <span className="size-1.5 rounded-full bg-current" />}
       {children}
     </span>

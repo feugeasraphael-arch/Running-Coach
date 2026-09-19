@@ -8,13 +8,16 @@ import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ACWR_HEADLINE, WORKOUT_LABEL } from "./tones";
 
-const glow: Record<string, string> = {
-  neutral: "from-surface-2",
-  good: "from-good/14",
-  info: "from-info/14",
-  warn: "from-warn/16",
-  bad: "from-bad/14",
-  accent: "from-accent/14",
+/** A flat status tint plus a rule along the top edge — no gradient: a
+ *  diagonal colour wash is the most recognisable "AI dashboard" tell there is,
+ *  and it says nothing a solid state colour does not. */
+const statusTint: Record<string, string> = {
+  neutral: "bg-surface-2/60 border-t-line-strong",
+  good: "bg-good/[0.07] border-t-good",
+  info: "bg-info/[0.07] border-t-info",
+  warn: "bg-warn/[0.07] border-t-warn",
+  bad: "bg-bad/[0.07] border-t-bad",
+  accent: "bg-accent/[0.07] border-t-accent",
 };
 
 export function CoachHero() {
@@ -25,13 +28,12 @@ export function CoachHero() {
   const zone = summary.data ? ACWR_HEADLINE[summary.data.acwr.flag] ?? ACWR_HEADLINE.no_data : ACWR_HEADLINE.no_data;
 
   return (
-    <Card className="relative overflow-hidden">
-      <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent to-60%", glow[zone.tone])} />
+    <Card className={cn("relative overflow-hidden border-t-2", statusTint[zone.tone])}>
       <div className="relative grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_auto] lg:items-center">
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted">
             <Sparkles className={cn("size-3.5", toneText[zone.tone])} />
-            Coach
+            <span className="label-mono">Coach</span>
           </div>
           {summary.isPending ? (
             <div className="space-y-2.5">
@@ -43,7 +45,7 @@ export function CoachHero() {
               <h1 className="text-2xl font-semibold tracking-tight sm:text-[28px]">{zone.headline}</h1>
               <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">{summary.data.recommendation}</p>
               <Link to="/coach" className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline">
-                <Sparkles className="size-3.5" /> Demander au coach IA
+                <Sparkles className="size-3.5" /> Ask the AI coach
               </Link>
             </>
           ) : (

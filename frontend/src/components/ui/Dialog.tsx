@@ -23,10 +23,10 @@ export function Dialog({
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-40 animate-fade-in bg-black/50 backdrop-blur-[2px]" />
+        <D.Overlay className="fixed inset-0 z-40 animate-fade-in bg-scrim backdrop-blur-[3px]" />
         <D.Content
           className={cn(
-            "fixed top-1/2 left-1/2 z-50 flex max-h-[min(88dvh,860px)] w-[calc(100vw-24px)] max-w-2xl -translate-x-1/2 -translate-y-1/2 animate-scale-in flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl",
+            "fixed top-1/2 left-1/2 z-50 flex max-h-[min(88dvh,860px)] w-[calc(100vw-24px)] max-w-2xl -translate-x-1/2 -translate-y-1/2 animate-scale-in flex-col overflow-hidden rounded-2xl border border-line-strong bg-surface-2 shadow-2xl",
             className,
           )}
         >

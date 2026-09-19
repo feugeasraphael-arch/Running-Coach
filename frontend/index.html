@@ -3,9 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0a0c0b" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Run Coach</title>
+    <script>
+      // Applies the stored theme before first paint. Without this the page
+      // renders dark and then jumps to light for anyone who chose light.
+      // Dark is the default: the OS setting is deliberately not consulted.
+      try {
+        if (localStorage.getItem("run-coach:theme") === "light") {
+          document.documentElement.dataset.theme = "light";
+        }
+      } catch (_) {
+        /* private mode / blocked storage — dark is a fine fallback */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
