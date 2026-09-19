@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Suspense, useEffect } from "react";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Activity, CalendarCheck, ChefHat, LayoutDashboard, Sparkles } from "lucide-react";
 import { SyncButton } from "./SyncButton";
 import { cn } from "@/lib/cn";
@@ -52,9 +53,11 @@ export function AppShell() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 pt-6 pb-28 sm:px-6 md:pb-12">
-        <Suspense fallback={<Skeleton className="h-64 w-full rounded-2xl" />}>
-          <Outlet />
-        </Suspense>
+        <ErrorBoundary key={pathname}>
+          <Suspense fallback={<Skeleton className="h-64 w-full rounded-2xl" />}>
+            <Outlet />
+          </Suspense>
+        </ErrorBoundary>
       </main>
 
       {/* Bottom tab bar on small screens */}
