@@ -14,3 +14,7 @@ dist/
 sync.log
 *.tsbuildinfo
 .claude/worktrees/
+
+# Database backups (the *.db rule above does not catch these)
+*.db.bak-*
+*.bak-*
