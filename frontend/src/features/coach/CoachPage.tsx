@@ -110,7 +110,7 @@ export function CoachPage() {
                   key={s}
                   type="button"
                   onClick={() => submit(s)}
-                  className="rounded-xl border border-line bg-surface p-3.5 text-left text-[13px] transition-colors hover:border-line-strong hover:bg-surface-2"
+                  className="rounded-xl border border-line-strong bg-surface-2 p-3.5 text-left text-[13px] transition-colors hover:border-accent/50"
                 >
                   {s}
                 </button>
@@ -128,7 +128,7 @@ export function CoachPage() {
       </div>
 
       <div className="sticky bottom-20 mt-4 md:bottom-4">
-        <div className="rounded-2xl border border-line bg-surface p-2 shadow-card focus-within:border-line-strong">
+        <div className="rounded-2xl border border-line-strong bg-surface-2 p-2 focus-within:border-accent/60">
           <textarea
             ref={inputRef}
             value={draft}

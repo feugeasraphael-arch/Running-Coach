@@ -66,7 +66,7 @@ export function PlanPage() {
               <CardBody className="relative">
                 <p className="text-[14px] leading-relaxed">{data.advice}</p>
                 {data.next_workout && (
-                  <div className="mt-4 rounded-xl border border-line bg-surface/70 p-3">
+                  <div className="mt-4 rounded-xl bg-surface-2 p-3">
                     <div className="text-xs text-muted">{fmtDate(data.next_workout.date, { weekday: "long", day: "numeric", month: "long" })}</div>
                     <div className="mt-0.5 font-medium">{data.next_workout.title}</div>
                   </div>

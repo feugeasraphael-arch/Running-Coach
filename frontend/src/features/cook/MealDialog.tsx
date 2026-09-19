@@ -83,7 +83,7 @@ export function MealDialog({ selection, onClose }: { selection: { recipe: Recipe
                 {m.ingredients.map((i) => (
                   <li key={i.item} className="flex justify-between gap-3 py-1.5">
                     <span>{i.item}</span>
-                    <span className="tnum shrink-0 text-muted">{i.qty}</span>
+                    <span className="readout shrink-0 text-muted">{i.qty}</span>
                   </li>
                 ))}
               </ul>

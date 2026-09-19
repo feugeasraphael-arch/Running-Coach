@@ -27,7 +27,7 @@ export function Segmented<K extends string>({
             onClick={() => onChange(o.key)}
             className={cn(
               "h-6 rounded-md px-2 text-[11px] font-medium transition-colors",
-              active ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg",
+              active ? "bg-accent/18 text-accent" : "text-muted hover:text-fg",
             )}
           >
             {o.label}

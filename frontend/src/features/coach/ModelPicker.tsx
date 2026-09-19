@@ -38,7 +38,7 @@ export function ModelPicker({
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 max-h-[min(70dvh,var(--radix-dropdown-menu-content-available-height))] w-72 animate-scale-in overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-xl"
+          className="z-50 max-h-[min(70dvh,var(--radix-dropdown-menu-content-available-height))] w-72 animate-scale-in overflow-y-auto rounded-xl border border-line-strong bg-surface-2 p-1 shadow-xl"
         >
           <M.RadioGroup value={value} onValueChange={onChange}>
             {models.map((m) => (

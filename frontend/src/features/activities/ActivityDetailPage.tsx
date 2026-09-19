@@ -350,7 +350,7 @@ function Splits({ splits, kind }: { splits: Split[]; kind: ActivityDetail["split
     <Card className="overflow-hidden">
       <CardHeader title={title} subtitle={hasKind ? "Work reps compared against the target pace" : undefined} />
       <div className="mt-3 overflow-x-auto">
-        <table className="tnum w-full text-[13px]">
+        <table className="readout w-full text-[13px]">
           <thead className="text-xs text-muted">
             <tr className="border-y border-line">
               <th className="px-5 py-2 text-left font-medium">#</th>

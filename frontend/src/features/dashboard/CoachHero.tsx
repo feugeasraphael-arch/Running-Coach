@@ -59,7 +59,7 @@ export function CoachHero() {
         {next && (
           <Link
             to="/plan"
-            className="group flex min-w-64 items-center gap-4 rounded-xl border border-line bg-surface/70 p-4 backdrop-blur transition-colors hover:border-line-strong"
+            className="group flex min-w-64 items-center gap-4 rounded-xl border border-line-strong bg-surface-2 p-4 transition-colors hover:border-accent/50"
           >
             <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
               <CalendarClock className="size-5" />

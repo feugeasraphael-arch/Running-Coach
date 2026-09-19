@@ -70,7 +70,7 @@ export function ActivitiesPage() {
                   <th className="hidden px-4 py-2.5 font-medium lg:table-cell">Source</th>
                 </tr>
               </thead>
-              <tbody className="tnum">
+              <tbody className="readout">
                 {data.items.map((a) => (
                   <tr
                     key={a.id}
@@ -99,7 +99,7 @@ export function ActivitiesPage() {
 
         {data && data.total > PAGE && (
           <div className="flex items-center justify-between border-t border-line px-4 py-3 text-xs text-muted">
-            <span className="tnum">
+            <span className="readout">
               {(page - 1) * PAGE + 1}–{Math.min(page * PAGE, data.total)} of {data.total}
             </span>
             <div className="flex gap-1.5">

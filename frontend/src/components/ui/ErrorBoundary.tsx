@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
     const stale = /dynamically imported module|Importing a module script failed|Failed to fetch/i.test(error.message);
 
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-line bg-surface px-6 py-14 text-center">
+      <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface px-6 py-14 text-center">
         <h2 className="text-lg font-semibold tracking-tight">{stale ? "This tab is out of date" : "Something broke while rendering"}</h2>
         <p className="max-w-md text-[13px] text-muted">
           {stale

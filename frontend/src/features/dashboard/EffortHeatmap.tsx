@@ -142,7 +142,7 @@ export function EffortHeatmap() {
             {hover && (
               <div
                 role="tooltip"
-                className="pointer-events-none absolute z-20 w-max max-w-60 -translate-x-1/2 -translate-y-full rounded-lg border border-line bg-surface px-3 py-2 text-xs shadow-xl"
+                className="pointer-events-none absolute z-20 w-max max-w-60 -translate-x-1/2 -translate-y-full rounded-lg border border-line-strong bg-surface-2 px-3 py-2 text-xs shadow-xl"
                 style={{ left: Math.max(90, Math.min(hover.x, (wrapRef.current?.clientWidth ?? 0) - 90)), top: hover.y - 6 }}
               >
                 <div className="text-muted">{fmtDate(hover.date, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</div>
