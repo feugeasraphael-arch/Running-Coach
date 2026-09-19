@@ -10,7 +10,7 @@ const NAV = [
   { to: "/activities", label: "Activities", icon: Activity },
   { to: "/plan", label: "Training plan", icon: CalendarCheck },
   { to: "/cook", label: "The Cook", icon: ChefHat },
-  { to: "/coach", label: "Coach IA", icon: Sparkles },
+  { to: "/coach", label: "AI Coach", icon: Sparkles },
 ];
 
 export function AppShell() {

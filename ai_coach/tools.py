@@ -119,12 +119,12 @@ TOOLS: dict[str, tuple[dict, Callable[[dict], Any], str]] = {
     "get_coach_summary": (
         _spec("get_coach_summary", "Snapshot: ACWR load ratio, recovery status, last 4 weeks of mileage/pace, cadence, gear and the rule-based recommendation."),
         get_coach_summary,
-        "Lecture du résumé coach",
+        "Reading your coach summary",
     ),
     "get_recovery": (
         _spec("get_recovery", "Latest complete day of Garmin recovery (training readiness, HRV, body battery) vs. the prior 7-day average."),
         get_recovery,
-        "Analyse de ta récupération",
+        "Checking your recovery",
     ),
     "get_wellness_trend": (
         _spec(
@@ -133,7 +133,7 @@ TOOLS: dict[str, tuple[dict, Callable[[dict], Any], str]] = {
             {"days": {"type": "integer", "description": "How many days back (1-180, default 28)."}},
         ),
         get_wellness_trend,
-        "Lecture de tes données bien-être",
+        "Reading your wellness data",
     ),
     "get_training_load": (
         _spec(
@@ -142,7 +142,7 @@ TOOLS: dict[str, tuple[dict, Callable[[dict], Any], str]] = {
             {"weeks": {"type": "integer", "description": "Weeks of history (1-104, default 12)."}},
         ),
         get_training_load,
-        "Analyse de ta charge d'entraînement",
+        "Analysing your training load",
     ),
     "get_training_plan": (
         _spec(
@@ -154,7 +154,7 @@ TOOLS: dict[str, tuple[dict, Callable[[dict], Any], str]] = {
             },
         ),
         get_training_plan,
-        "Lecture de ton plan",
+        "Reading your training plan",
     ),
     "list_activities": (
         _spec(
@@ -166,7 +166,7 @@ TOOLS: dict[str, tuple[dict, Callable[[dict], Any], str]] = {
             },
         ),
         list_activities,
-        "Lecture de tes dernières activités",
+        "Reading your recent activities",
     ),
     "get_activity_detail": (
         _spec(
@@ -175,17 +175,17 @@ TOOLS: dict[str, tuple[dict, Callable[[dict], Any], str]] = {
             {"activity_id": {"type": "string", "description": "Activity id from list_activities, e.g. 'strava_123'."}},
         ),
         get_activity_detail,
-        "Analyse de la séance",
+        "Analysing the session",
     ),
     "get_race_predictions": (
         _spec("get_race_predictions", "All-time PRs for 5K/10K/half/marathon and Riegel-formula predictions from the best effort of the last 120 days."),
         get_race_predictions,
-        "Lecture de tes prédictions de course",
+        "Reading your race predictions",
     ),
     "get_gear": (
         _spec("get_gear", "Shoe mileage and replacement flags."),
         get_gear,
-        "Vérification de tes chaussures",
+        "Checking your shoes",
     ),
 }
 

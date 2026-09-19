@@ -27,9 +27,9 @@ export function ModelPicker({
       <M.Trigger
         disabled={disabled || models.length === 0}
         className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-medium text-muted transition-colors outline-none hover:bg-surface-2 hover:text-fg focus-visible:bg-surface-2 disabled:pointer-events-none disabled:opacity-50 data-[state=open]:bg-surface-2 data-[state=open]:text-fg"
-        aria-label="Choisir le modèle"
+        aria-label="Choose the model"
       >
-        {current ? current.label : "Modèle"}
+        {current ? current.label : "Model"}
         <ChevronDown className="size-3.5" />
       </M.Trigger>
       <M.Portal>

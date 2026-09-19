@@ -20,12 +20,12 @@ log = logging.getLogger("run_coach.ai")
 
 # (model id, label, one-line description), best first.
 CATALOG: list[tuple[str, str, str]] = [
-    ("mistral-large-latest", "Mistral Large 3", "Le plus puissant"),
-    ("mistral-medium-2604", "Mistral Medium 3.5", "Le meilleur équilibre pour le coaching"),
-    ("mistral-small-2603", "Mistral Small 4", "Rapide et économique"),
-    ("ministral-14b-2512", "Ministral 14B", "Compact, réponses rapides"),
-    ("ministral-8b-2512", "Ministral 8B", "Très léger"),
-    ("ministral-3b-2512", "Ministral 3B", "Minimal — outils peu fiables"),
+    ("mistral-large-latest", "Mistral Large 3", "The most capable"),
+    ("mistral-medium-2604", "Mistral Medium 3.5", "Best balance for coaching"),
+    ("mistral-small-2603", "Mistral Small 4", "Fast and cheap"),
+    ("ministral-14b-2512", "Ministral 14B", "Compact, quick answers"),
+    ("ministral-8b-2512", "Ministral 8B", "Very light"),
+    ("ministral-3b-2512", "Ministral 3B", "Minimal — unreliable at tool use"),
 ]
 
 _AVAILABILITY_TTL = 3600

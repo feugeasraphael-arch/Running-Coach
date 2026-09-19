@@ -30,7 +30,7 @@ class MistralError(Exception):
 def _api_key() -> str:
     key = os.environ.get("MISTRAL_API_KEY", "").strip()
     if not key:
-        raise MistralError("MISTRAL_API_KEY n'est pas défini dans .env.")
+        raise MistralError("MISTRAL_API_KEY is not set in .env.")
     return key
 
 
@@ -49,17 +49,17 @@ def _explain(resp: requests.Response, model: str) -> str:
         body = {}
     message = body.get("message") or resp.text[:200] or resp.reason
     if resp.status_code == 401:
-        return "Mistral a refusé la clé API (401). Vérifie MISTRAL_API_KEY dans .env."
+        return "Mistral rejected the API key (401). Check MISTRAL_API_KEY in .env."
     if resp.status_code == 403 and body.get("type") == "tier_not_allowed":
-        return f"Le modèle {model} n'est pas disponible avec ton forfait Mistral."
+        return f"The {model} model is not available on your Mistral plan."
     if resp.status_code == 429 and resp.headers.get("x-ratelimit-limit-req-minute") == "0":
         return (
-            "Ton espace Mistral n'a aucun quota de chat (0 requête/minute). Active un forfait API "
-            "(Experiment gratuit ou facturation) sur console.mistral.ai → Billing."
+            "Your Mistral workspace has no chat quota (0 requests/minute). Enable an API plan "
+            "(the free Experiment tier or billing) at console.mistral.ai → Billing."
         )
     if resp.status_code == 429:
-        return "Limite de requêtes Mistral atteinte — réessaie dans quelques secondes."
-    return f"Erreur API Mistral {resp.status_code} : {message}"
+        return "Mistral rate limit reached — try again in a few seconds."
+    return f"Mistral API error {resp.status_code}: {message}"
 
 
 def _stream_chat_completions(
@@ -91,7 +91,7 @@ def _stream_chat_completions(
         try:
             resp = requests.post(f"{API_URL}/chat/completions", headers=headers, json=payload, stream=True, timeout=(10, 120))
         except requests.RequestException as exc:
-            raise MistralError(f"Impossible de joindre Mistral : {exc}") from exc
+            raise MistralError(f"Could not reach Mistral: {exc}") from exc
         if _should_retry(resp, attempt):
             continue
         break
@@ -189,7 +189,7 @@ def _stream_conversations(
         try:
             resp = requests.post(f"{API_URL}/conversations", headers=headers, json=payload, stream=True, timeout=(10, 120))
         except requests.RequestException as exc:
-            raise MistralError(f"Impossible de joindre Mistral : {exc}") from exc
+            raise MistralError(f"Could not reach Mistral: {exc}") from exc
         if _should_retry(resp, attempt):
             continue
         break
@@ -217,7 +217,7 @@ def _stream_conversations(
                     }]
                 }
             elif kind == "conversation.response.error":
-                raise MistralError(f"Erreur Mistral : {event.get('message') or event}")
+                raise MistralError(f"Mistral error: {event.get('message') or event}")
             elif kind == "conversation.response.done":
                 return
 
