@@ -12,7 +12,7 @@ import { ACWR_HEADLINE, WORKOUT_LABEL } from "./tones";
  *  diagonal colour wash is the most recognisable "AI dashboard" tell there is,
  *  and it says nothing a solid state colour does not. */
 const statusTint: Record<string, string> = {
-  neutral: "bg-surface-2/60 border-t-line-strong",
+  neutral: "bg-surface-2 border-t-line-strong",
   good: "bg-good/[0.07] border-t-good",
   info: "bg-info/[0.07] border-t-info",
   warn: "bg-warn/[0.07] border-t-warn",

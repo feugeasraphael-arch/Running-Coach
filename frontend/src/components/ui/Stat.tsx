@@ -15,7 +15,7 @@ export function Stat({ label, value, unit, hint, className, size = "md" }: {
       <div
         className={cn(
           "readout mt-0.5 flex items-baseline gap-1 font-bold",
-          size === "lg" ? "text-[32px] leading-none" : size === "md" ? "text-xl" : "text-base",
+          size === "lg" ? "text-[26px] leading-none" : size === "md" ? "text-lg" : "text-sm",
         )}
       >
         {value}
