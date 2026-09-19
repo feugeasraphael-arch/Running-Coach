@@ -12,12 +12,10 @@ from __future__ import annotations
 import json
 import logging
 from datetime import date
-from typing import Iterator
+from typing import Iterator, Optional
 
-import coach
-from ai_coach import mistral
+from ai_coach import context, mistral, models
 from ai_coach.tools import TOOL_SPECS, run_tool, tool_label
-from api.deps import db
 
 log = logging.getLogger("run_coach.ai")
 
@@ -26,49 +24,37 @@ MAX_HISTORY_MESSAGES = 30
 
 SYSTEM_PROMPT = """You are Run Coach, a personal running coach built into the athlete's own training dashboard.
 
+{physiology}
+
+---
+
+# OPERATING CONTEXT
+
 Today is {today}. The athlete trains with Strava + a Garmin watch and follows a training plan (a French 10K-oriented block: interval sessions like 5x1km and Norwegian 4x4, easy runs, long runs, benchmark tests).
 
 ## How you work
+- The coaching doctrine and reference files above are binding. Every session you prescribe must carry its four obligations: physiological stimulus, target pace AND HR, justified recovery, and the Joyner & Coyle determinant it serves.
 - Ground every statement about the athlete in data you fetched with your tools during this conversation. Never guess or invent numbers, dates, paces or sessions. If a tool returns no data, say so plainly.
 - Call tools proactively: for "how am I doing / what should I do tomorrow", check recovery, training load and the plan before answering. Prefer a few targeted calls over dumping everything.
 - Units in the data: distances in metres (distance_m) or km (…_km), durations in seconds, pace in seconds per km (convert to min:ss /km when you speak), HR in bpm.
 - ACWR is a rough heuristic with real scientific criticism; use it as one signal among recovery, plan adherence and how recent sessions went, never as a hard rule.
+- The dashboard's HR zones come from Strava's five-zone split, which is NOT the Z1-Z5 model in the reference above. When you quote a zone from a tool, name it as Strava's; when you prescribe, use the reference model and give the bpm range so there is no ambiguity.
 
 ## Coaching style
 - Be concise and concrete: lead with the answer/recommendation, then the 2-4 data points that justify it. Use short Markdown (bold key numbers, bullet lists, small tables for comparisons).
-- Base training advice on established endurance-training principles (progressive overload, most volume easy, hard/easy alternation, recovery before intensity, tapering before races). When you rely on general sports-science knowledge rather than the athlete's data, say so.
+- Say explicitly when you rely on general sports-science knowledge rather than on the athlete's own data.
 - You cannot change the training plan yet: when an adjustment is warranted, describe it precisely (which day, what session, targets) so the athlete can apply it.
 - Safety: for pain, injury, illness, chest symptoms or dizziness, advise stopping/reducing training and seeing a medical professional; don't diagnose.
 
 ## Language
-Reply in the language the athlete writes in (usually French). Keep the athlete's own session names as-is.
+Reply in the language the athlete writes in (usually French). The reference files are in English: when you answer in French, use the athlete's own vocabulary (VMA for MAS, EF, allure, fractionné, seuil) rather than translating literally. Keep their session names exactly as they wrote them.
 
-## Snapshot at the start of this conversation
-{snapshot}
+# LIVE STATE OF THE ATHLETE
+
+This is rebuilt from the database at the start of every conversation. It is a photograph, not a subscription: the training plan is re-imported from the athlete's calendar on each sync and can change at any moment, including mid-conversation. Re-read it with `get_training_plan` whenever the answer depends on it, and never quote a planned session from memory of an earlier turn.
+
+{live}
 """
-
-
-def _snapshot() -> str:
-    """A small always-on context block so simple questions need no tool call."""
-    try:
-        with db() as conn:
-            acwr = coach.compute_acwr(conn)
-            rec = coach.get_recovery_status(conn)
-            plan = coach.get_plan_status(conn, 0, 1)
-    except Exception as exc:  # noqa: BLE001
-        return f"(snapshot unavailable: {exc})"
-    lines = []
-    if acwr.get("flag") and acwr["flag"] != "no_data":
-        lines.append(f"- ACWR {acwr['ratio']} ({acwr['flag']}): last 7d {acwr['acute_km']} km, 28d weekly avg {acwr['chronic_km']} km")
-    if rec.get("status") and rec["status"] != "no_data":
-        lines.append(
-            f"- Recovery {rec['status']} on {rec['date']}: body battery high {rec.get('body_battery_high')}, "
-            f"HRV {rec.get('hrv_ms')}, readiness {rec.get('training_readiness')}"
-        )
-    nxt = plan.get("next_workout") if isinstance(plan, dict) else None
-    if nxt:
-        lines.append(f"- Next planned: {nxt['date']} {nxt['title']} ({nxt.get('workout_type')}; pace {nxt.get('pace_target')}; HR {nxt.get('hr_target')})")
-    return "\n".join(lines) or "(no data synced yet)"
 
 
 def _clean_history(messages: list[dict]) -> list[dict]:
@@ -80,9 +66,18 @@ def _clean_history(messages: list[dict]) -> list[dict]:
     return out
 
 
-def run(history: list[dict]) -> Iterator[dict]:
+def run(history: list[dict], model: Optional[str] = None) -> Iterator[dict]:
+    """`model` is a Mistral model id from the picker (see ai_coach.models);
+    None means the .env default."""
     messages: list[dict] = [
-        {"role": "system", "content": SYSTEM_PROMPT.format(today=date.today().strftime("%A %d %B %Y"), snapshot=_snapshot())},
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT.format(
+                physiology=context.block(),
+                today=date.today().strftime("%A %d %B %Y"),
+                live=context.live_block(),
+            ),
+        },
         *_clean_history(history),
     ]
     if len(messages) == 1 or messages[-1]["role"] != "user":
@@ -96,7 +91,7 @@ def run(history: list[dict]) -> Iterator[dict]:
             # On the last round tools are withheld so the model must answer.
             tools = TOOL_SPECS if _round < MAX_TOOL_ROUNDS else None
 
-            for delta in mistral.stream_chat(messages, tools=tools):
+            for delta in models.stream_chat(model, messages, tools=tools):
                 content = delta.get("content")
                 if isinstance(content, str) and content:
                     text_parts.append(content)
@@ -132,7 +127,7 @@ def run(history: list[dict]) -> Iterator[dict]:
                 messages.append({"role": "tool", "tool_call_id": c["id"], "name": c["name"], "content": result})
 
         yield {"type": "done"}
-    except mistral.MistralError as exc:
+    except (mistral.MistralError, models.UnknownModel) as exc:
         yield {"type": "error", "message": str(exc)}
     except Exception as exc:  # noqa: BLE001
         log.exception("coach chat failed")

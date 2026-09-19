@@ -5,6 +5,19 @@ import remarkGfm from "remark-gfm";
 import { ArrowUp, Check, Loader2, RotateCcw, Sparkles, Square, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useCoachChat, type ChatMessage } from "./useCoachChat";
+import { ModelPicker, type CoachModel } from "./ModelPicker";
+
+type ChatStatus = { configured: boolean; default_model: string; models: CoachModel[] };
+
+const MODEL_KEY = "coach.model";
+
+function readStoredModel(): string | null {
+  try {
+    return localStorage.getItem(MODEL_KEY);
+  } catch {
+    return null;
+  }
+}
 
 const SUGGESTIONS = [
   "Je fais quoi demain, vu ma récupération ?",
@@ -14,11 +27,24 @@ const SUGGESTIONS = [
 ];
 
 export function CoachPage() {
-  const { messages, streaming, send, stop, reset } = useCoachChat();
   const status = useQuery({
     queryKey: ["chat", "status"],
-    queryFn: async () => (await fetch("/api/chat/status")).json() as Promise<{ configured: boolean; model: string }>,
+    queryFn: async () => (await fetch("/api/chat/status")).json() as Promise<ChatStatus>,
   });
+  const [picked, setPicked] = useState<string | null>(readStoredModel);
+  const models = status.data?.models ?? [];
+  // A remembered model can disappear (key removed, model retired): fall back to the default.
+  const model = models.some((m) => m.id === picked) ? picked! : status.data?.default_model;
+  const currentModel = models.find((m) => m.id === model);
+  const pickModel = (id: string) => {
+    setPicked(id);
+    try {
+      localStorage.setItem(MODEL_KEY, id);
+    } catch {
+      /* private mode: the choice just won't be remembered */
+    }
+  };
+  const { messages, streaming, send, stop, reset } = useCoachChat(model);
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -52,7 +78,7 @@ export function CoachPage() {
           </span>
           <div>
             <h1 className="text-base font-semibold tracking-tight">Coach IA</h1>
-            <p className="text-xs text-muted">{status.data ? `Mistral · ${status.data.model}` : "Mistral"} · lit tes données en direct</p>
+            <p className="text-xs text-muted">{currentModel ? `Mistral · ${currentModel.label}` : "Mistral"} · lit tes données en direct</p>
           </div>
         </div>
         {!empty && (
@@ -102,7 +128,7 @@ export function CoachPage() {
       </div>
 
       <div className="sticky bottom-20 mt-4 md:bottom-4">
-        <div className="flex items-end gap-2 rounded-2xl border border-line bg-surface p-2 shadow-card focus-within:border-line-strong">
+        <div className="rounded-2xl border border-line bg-surface p-2 shadow-card focus-within:border-line-strong">
           <textarea
             ref={inputRef}
             value={draft}
@@ -111,17 +137,20 @@ export function CoachPage() {
             rows={1}
             placeholder="Écris ta question…"
             aria-label="Message au coach"
-            className="field-sizing-content max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-[14px] outline-none placeholder:text-subtle"
+            className="field-sizing-content max-h-40 min-h-9 w-full resize-none bg-transparent px-2 py-2 text-[14px] outline-none placeholder:text-subtle"
           />
-          {streaming ? (
-            <Button size="icon" onClick={stop} aria-label="Arrêter">
-              <Square className="size-3.5 fill-current" />
-            </Button>
-          ) : (
-            <Button size="icon" variant="primary" onClick={() => submit()} disabled={!draft.trim()} aria-label="Envoyer">
-              <ArrowUp />
-            </Button>
-          )}
+          <div className="flex items-center justify-between gap-2">
+            <ModelPicker models={models} value={model ?? ""} onChange={pickModel} disabled={streaming} />
+            {streaming ? (
+              <Button size="icon" onClick={stop} aria-label="Arrêter">
+                <Square className="size-3.5 fill-current" />
+              </Button>
+            ) : (
+              <Button size="icon" variant="primary" onClick={() => submit()} disabled={!draft.trim()} aria-label="Envoyer">
+                <ArrowUp />
+              </Button>
+            )}
+          </div>
         </div>
         <p className="mt-1.5 text-center text-[11px] text-subtle">Le coach peut se tromper — vérifie avant de modifier ton plan.</p>
       </div>

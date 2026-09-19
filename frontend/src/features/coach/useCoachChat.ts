@@ -19,8 +19,9 @@ type Event =
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 /** Chat state + NDJSON streaming against POST /api/chat. The conversation is
- *  deliberately in-memory only: opening the page always starts from a blank slate. */
-export function useCoachChat() {
+ *  deliberately in-memory only: opening the page always starts from a blank slate.
+ *  `model` is the picker id sent with each turn (undefined = server default). */
+export function useCoachChat(model?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -47,12 +48,13 @@ export function useCoachChat() {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history.map(({ role, content }) => ({ role, content })) }),
+          body: JSON.stringify({ model, messages: history.map(({ role, content }) => ({ role, content })) }),
           signal: ctrl.signal,
         });
         if (!res.ok || !res.body) {
           const body = await res.json().catch(() => null);
-          throw new Error((body && JSON.stringify(body.detail)) || `HTTP ${res.status}`);
+          const detail = body?.detail;
+          throw new Error((typeof detail === "string" ? detail : detail && JSON.stringify(detail)) || `HTTP ${res.status}`);
         }
 
         const reader = res.body.getReader();
@@ -81,7 +83,7 @@ export function useCoachChat() {
         abortRef.current = null;
       }
     },
-    [messages, streaming],
+    [messages, streaming, model],
   );
 
   const stop = useCallback(() => abortRef.current?.abort(), []);

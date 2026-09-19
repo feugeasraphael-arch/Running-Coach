@@ -42,7 +42,7 @@ def api_mode() -> str:
     return os.environ.get("MISTRAL_API_MODE", "conversations").strip().lower()
 
 
-def _explain(resp: requests.Response) -> str:
+def _explain(resp: requests.Response, model: str) -> str:
     try:
         body = resp.json()
     except ValueError:
@@ -51,7 +51,7 @@ def _explain(resp: requests.Response) -> str:
     if resp.status_code == 401:
         return "Mistral a refusé la clé API (401). Vérifie MISTRAL_API_KEY dans .env."
     if resp.status_code == 403 and body.get("type") == "tier_not_allowed":
-        return f"Le modèle {chat_model()} n'est pas disponible avec ton forfait Mistral."
+        return f"Le modèle {model} n'est pas disponible avec ton forfait Mistral."
     if resp.status_code == 429 and resp.headers.get("x-ratelimit-limit-req-minute") == "0":
         return (
             "Ton espace Mistral n'a aucun quota de chat (0 requête/minute). Active un forfait API "
@@ -74,8 +74,9 @@ def _stream_chat_completions(
     Retries a transient 429 (a real per-minute limit, not a zero quota) with
     short backoff before the stream starts; never retries mid-stream.
     """
+    model = model or chat_model()
     payload: dict[str, Any] = {
-        "model": model or chat_model(),
+        "model": model,
         "messages": messages,
         "stream": True,
         "temperature": temperature,
@@ -94,7 +95,7 @@ def _stream_chat_completions(
         if _should_retry(resp, attempt):
             continue
         break
-    _raise_for_status(resp)
+    _raise_for_status(resp, model)
 
     with resp:
         for raw in resp.iter_lines(decode_unicode=True):
@@ -129,9 +130,9 @@ def _should_retry(resp: requests.Response, attempt: int) -> bool:
     return True
 
 
-def _raise_for_status(resp: requests.Response) -> None:
+def _raise_for_status(resp: requests.Response, model: str) -> None:
     if not resp.ok:
-        msg = _explain(resp)
+        msg = _explain(resp, model)
         resp.close()
         raise MistralError(msg)
 
@@ -170,8 +171,9 @@ def _stream_conversations(
     max_tokens: int,
 ) -> Iterator[dict]:
     instructions, inputs = _to_conversation_inputs(messages)
+    model = model or chat_model()
     payload: dict[str, Any] = {
-        "model": model or chat_model(),
+        "model": model,
         "inputs": inputs,
         "stream": True,
         "store": False,  # stateless: the full history is replayed on every call
@@ -191,7 +193,7 @@ def _stream_conversations(
         if _should_retry(resp, attempt):
             continue
         break
-    _raise_for_status(resp)
+    _raise_for_status(resp, model)
 
     with resp:
         for raw in resp.iter_lines(decode_unicode=True):
