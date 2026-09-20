@@ -1,4 +1,4 @@
-"""Sync trigger and sync status."""
+"""Sync trigger, sync status and coach-context diagnostics."""
 from __future__ import annotations
 
 import subprocess
@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
+from ai_coach import context
 from api.deps import db
 
 router = APIRouter(prefix="/api", tags=["system"])
@@ -22,6 +23,15 @@ SYNC_STEPS = (("strava", "ingest_strava.py"), ("garmin", "ingest_garmin.py"), ("
 @router.get("/health")
 def health():
     return {"ok": True}
+
+
+@router.get("/coach/context")
+def coach_context(reload: bool = False):
+    """Which physiology reference files the coach loaded, and how big the
+    resulting prompt block is. `?reload=true` re-reads them after an edit."""
+    if reload:
+        context.reload()
+    return context.status()
 
 
 @router.get("/sync/status")

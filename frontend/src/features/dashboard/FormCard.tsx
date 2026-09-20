@@ -7,6 +7,7 @@ import { Stat } from "@/components/ui/Stat";
 import { useCadence, useGear } from "@/lib/queries";
 import { num } from "@/lib/format";
 import type { Cadence, Gear } from "@/lib/types";
+import { toneColor } from "@/lib/scales";
 
 const CADENCE: Record<Cadence["flag"], { tone: Tone; label: string; hint: string }> = {
   no_data: { tone: "neutral", label: "No data", hint: "" },
@@ -65,7 +66,7 @@ export function FormCard() {
                   </div>
                   <div className="mt-1.5 flex items-center gap-2">
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
-                      <div className="h-full rounded-full bg-current opacity-70" style={{ width: `${Math.min((g.distance_km / SHOE_LIFE_KM) * 100, 100)}%`, color: `var(--${GEAR[g.flag].tone === "neutral" ? "subtle" : GEAR[g.flag].tone})` }} />
+                      <div className="h-full rounded-full bg-current opacity-70" style={{ width: `${Math.min((g.distance_km / SHOE_LIFE_KM) * 100, 100)}%`, color: toneColor(GEAR[g.flag].tone) }} />
                     </div>
                     <span className="tnum text-xs text-muted">{Math.round(g.distance_km)} km</span>
                   </div>
