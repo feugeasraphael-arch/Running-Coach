@@ -4,17 +4,17 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { QueryState } from "@/components/ui/QueryState";
-import { RouteTrails, type Trail } from "@/components/maps/RouteShape";
+import { RoutesMap } from "@/components/maps/RouteMap";
+import { decodePolyline, simplify, type LatLng } from "@/lib/polyline";
 import { useActivities } from "@/lib/queries";
 import { fmtDate } from "@/lib/format";
 
 const RUNS = 40;
 
 /**
- * Every recent route drawn in one shared frame: the ground you actually
- * cover, rather than one run at a time. Deliberately tile-free -- it's a
- * shape-of-your-training card, and 40 embedded basemaps on the dashboard
- * would be slow and visually noisy.
+ * Every recent route on one basemap: the ground you actually cover, rather
+ * than one run at a time. It's a single map with many lines on it, not one
+ * map per run, so the dashboard pays for Leaflet once.
  */
 export function TrainingMap() {
   const q = useActivities({ limit: RUNS, offset: 0 });
@@ -34,16 +34,17 @@ export function TrainingMap() {
           empty={<EmptyState compact title="No mapped activities yet" hint="Runs recorded with GPS will show up here." />}
         >
           {(d) => {
-            const trails: Trail[] = d.items
-              .filter((a): a is typeof a & { summary_polyline: string } => Boolean(a.summary_polyline))
-              .map((a) => ({ id: a.id, polyline: a.summary_polyline }));
+            // Newest first: RoutesMap highlights index 0 and draws it on top.
+            const tracks: LatLng[][] = d.items
+              .filter((a) => a.summary_polyline)
+              .map((a) => simplify(decodePolyline(a.summary_polyline as string), 220));
             const newest = d.items.find((a) => a.summary_polyline);
             return (
               <>
-                <RouteTrails routes={trails} className="h-64" />
+                <RoutesMap tracks={tracks} className="h-72" />
                 <p className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
                   <span>
-                    {trails.length} of {d.items.length} recent activities have GPS
+                    {tracks.length} of {d.items.length} recent activities have GPS
                   </span>
                   {newest && (
                     <Link
