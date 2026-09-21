@@ -5,16 +5,22 @@ import { decodePolyline, type LatLng } from "@/lib/polyline";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/cn";
 
-// CARTO's basemaps, rendered from OpenStreetMap data. Two reasons over raw
-// OSM tiles: a muted palette that doesn't fight the route line, and a dark
-// variant that matches the app's dark theme. Attribution for both is
-// required, and set on the layer below.
+// Esri's grey canvas basemaps: no API key, a muted palette that doesn't
+// fight the route line, and a dark variant matching the app's dark theme.
+// (CARTO's equivalents now stamp "API KEY REQUIRED" across every tile.)
+//
+// Note the {z}/{y}/{x} order -- Esri puts row before column, unlike the
+// {z}/{x}/{y} most tile servers use.
+//
+// To swap providers, replace these two constants and nothing else:
+//   Satellite  https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}
+//   Plain OSM  https://tile.openstreetmap.org/{z}/{x}/{y}.png   (light only)
 const TILES = {
-  light: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  light: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+  dark: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
 };
 const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  'Tiles &copy; <a href="https://www.esri.com">Esri</a> &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 /** Leaflet writes colors into SVG presentation attributes, which don't
  *  resolve `var(--token)` -- so read the theme's computed value instead of
@@ -59,7 +65,7 @@ function useRouteMap(
     tiles.current = L.tileLayer(initialDark.current ? TILES.dark : TILES.light, {
       attribution: ATTRIBUTION,
       maxZoom: 19,
-      detectRetina: true,
+      maxNativeZoom: 16, // past this Esri has no tiles; upscale rather than 404
     }).addTo(map);
 
     const bounds = L.latLngBounds([]);
