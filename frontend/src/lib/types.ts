@@ -18,6 +18,11 @@ export interface Activity {
   avg_cadence: Nullable<number>;
   calories: Nullable<number>;
   perceived_effort: Nullable<number>;
+  /** Strava's reduced encoded polyline; null when the activity has no GPS.
+   *  Trimmed by any Strava privacy zone, unlike the detail `latlng` stream. */
+  summary_polyline?: Nullable<string>;
+  start_lat?: Nullable<number>;
+  start_lng?: Nullable<number>;
   hr_zones?: Nullable<HrZoneSummary>;
 }
 
@@ -70,7 +75,13 @@ export interface IntervalSession {
   too_slow: number;
 }
 
-export type Streams = Partial<Record<"time" | "distance" | "heartrate" | "velocity_smooth" | "altitude" | "cadence" | "grade_smooth", number[]>>;
+export type Streams = Partial<
+  Record<"time" | "distance" | "heartrate" | "velocity_smooth" | "altitude" | "cadence" | "grade_smooth", number[]>
+> & {
+  /** Full-resolution GPS track as [lat, lng] pairs -- the one stream that
+   *  isn't a flat number[]. Absent for runs without GPS. */
+  latlng?: [number, number][];
+};
 
 export interface ActivityDetail {
   activity: Activity & { external_id: string; timezone: Nullable<string>; elapsed_time_s: Nullable<number> };

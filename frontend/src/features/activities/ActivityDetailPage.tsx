@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Area, AreaChart, CartesianGrid, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowLeft, HeartPulse, Info, MessageSquareQuote, Timer } from "lucide-react";
+import { ArrowLeft, HeartPulse, Info, MapPin, MessageSquareQuote, Timer } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Stat } from "@/components/ui/Stat";
 import { C, ChartTip, Legend, axisProps, downsample, gridProps } from "@/components/charts/chartKit";
 import { HrZoneStrip, ZoneBreakdown } from "@/components/charts/HrZoneBar";
+import { RouteMap } from "@/components/maps/RouteMap";
 import { useActivity } from "@/lib/queries";
 import { capitalize, dateTime, duration, isNum, km, LOCALE, num, pace } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -93,6 +94,7 @@ function Detail({ data }: { data: ActivityDetail }) {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {data.intervals && <IntervalSummary iv={data.intervals} />}
+          <RouteCard detail={data} />
           <StreamCharts streams={data.streams} splits={data.splits_kind === "intervals" ? data.splits : []} />
           {data.splits.length > 0 && <Splits splits={data.splits} kind={data.splits_kind} />}
         </div>
@@ -123,6 +125,25 @@ function Detail({ data }: { data: ActivityDetail }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Route card. Uses the live GPS stream when the detail fetch returned one,
+ *  otherwise the polyline stored at sync time -- so the map still draws when
+ *  Strava is rate-limited or offline. Silent when the run has no GPS at all
+ *  (treadmill, manual entry), rather than showing an empty grey box. */
+function RouteCard({ detail }: { detail: ActivityDetail }) {
+  const points = detail.streams.latlng;
+  const polyline = detail.activity.summary_polyline;
+  if (!points?.length && !polyline) return null;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader title="Route" icon={<MapPin />} />
+      <CardBody className="pt-3">
+        <RouteMap points={points} polyline={polyline} className="h-80 overflow-hidden rounded-xl border border-line" />
+      </CardBody>
+    </Card>
   );
 }
 

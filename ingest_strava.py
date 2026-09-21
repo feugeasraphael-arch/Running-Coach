@@ -167,6 +167,13 @@ def _to_row(activity: dict) -> dict:
     if sport_type in _RUN_TYPES and avg_cadence is not None:
         avg_cadence *= 2
 
+    # Route shape, straight off the list response -- no extra API call. Strava
+    # sends an empty polyline and an empty start_latlng for activities without
+    # GPS (treadmill, manual entry), which we store as NULL.
+    summary_polyline = (activity.get("map") or {}).get("summary_polyline") or None
+    start_latlng = activity.get("start_latlng") or []
+    start_lat, start_lng = (start_latlng + [None, None])[:2]
+
     return {
         "id": f"strava_{activity['id']}",
         "source": "strava",
@@ -187,6 +194,9 @@ def _to_row(activity: dict) -> dict:
         "calories": activity.get("calories"),
         "perceived_effort": activity.get("suffer_score"),
         "gear_id": activity.get("gear_id"),
+        "summary_polyline": summary_polyline,
+        "start_lat": start_lat,
+        "start_lng": start_lng,
         "raw_json": json.dumps(activity),
     }
 
