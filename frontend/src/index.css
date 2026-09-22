@@ -265,6 +265,12 @@
   body {
     background: #ffffff;
   }
+  /* A Card that was never scrolled into view is still at its motion start
+     (opacity 0) and would print blank. !important beats the inline style. */
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* Markdown rendered from the AI coach. */

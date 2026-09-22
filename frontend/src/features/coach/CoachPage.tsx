@@ -2,10 +2,12 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { motion } from "motion/react";
 import { ArrowUp, Check, Loader2, RotateCcw, Sparkles, Square, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useCoachChat, type ChatMessage } from "./useCoachChat";
 import { ModelPicker, type CoachModel } from "./ModelPicker";
+import { enter, tap } from "@/lib/motion";
 
 type ChatStatus = { configured: boolean; default_model: string; models: CoachModel[] };
 
@@ -105,15 +107,19 @@ export function CoachPage() {
               It checks your recovery, training load, plan and sessions before answering.
             </p>
             <div className="mt-8 grid w-full gap-2 sm:grid-cols-2">
-              {SUGGESTIONS.map((s) => (
-                <button
+              {SUGGESTIONS.map((s, i) => (
+                <motion.button
                   key={s}
                   type="button"
                   onClick={() => submit(s)}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0, transition: { ...enter, delay: 0.1 + i * 0.05 } }}
+                  whileHover={{ y: -2 }}
+                  whileTap={tap}
                   className="rounded-xl border border-line-strong bg-surface-2 p-3.5 text-left text-[13px] transition-colors hover:border-accent/50"
                 >
                   {s}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -161,14 +167,14 @@ export function CoachPage() {
 function Message({ m }: { m: ChatMessage }) {
   if (m.role === "user") {
     return (
-      <div className="flex justify-end">
+      <motion.div className="flex justify-end" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={enter} style={{ originX: 1, originY: 1 }}>
         <div className="max-w-[85%] rounded-2xl rounded-br-md bg-accent px-4 py-2.5 text-[14px] whitespace-pre-wrap text-accent-fg">{m.content}</div>
-      </div>
+      </motion.div>
     );
   }
   const thinking = m.pending && !m.content;
   return (
-    <div className="flex gap-3">
+    <motion.div className="flex gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ ...enter, delay: 0.08 }}>
       <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
         <Sparkles className="size-3.5" />
       </span>
@@ -178,10 +184,16 @@ function Message({ m }: { m: ChatMessage }) {
             {m.tools.map((t, i) => {
               const running = m.pending && !m.content && i === m.tools!.length - 1;
               return (
-                <li key={i} className="flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] text-muted">
+                <motion.li
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={enter}
+                  className="flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] text-muted"
+                >
                   {running ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3 text-good" />}
                   {t.label}
-                </li>
+                </motion.li>
               );
             })}
           </ul>
@@ -202,6 +214,6 @@ function Message({ m }: { m: ChatMessage }) {
           </p>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

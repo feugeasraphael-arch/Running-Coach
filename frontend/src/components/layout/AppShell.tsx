@@ -1,11 +1,13 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Suspense, useEffect } from "react";
+import { NavLink, useLocation, useOutlet } from "react-router-dom";
+import { Suspense, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Activity, CalendarCheck, ChefHat, LayoutDashboard, Sparkles } from "lucide-react";
 import { SyncButton } from "./SyncButton";
 import { ThemeToggle } from "./ThemeToggle";
 import { cn } from "@/lib/cn";
+import { enter, fade, glide } from "@/lib/motion";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -17,9 +19,6 @@ const NAV = [
 
 export function AppShell() {
   const { pathname } = useLocation();
-  useEffect(() => {
-    window.scrollTo({ top: 0 });
-  }, [pathname]);
 
   return (
     <div className="min-h-dvh">
@@ -37,13 +36,19 @@ export function AppShell() {
                 end={n.end}
                 className={({ isActive }) =>
                   cn(
-                    "flex h-8 items-center gap-2 rounded-lg px-3 text-[13px] font-medium transition-colors",
-                    isActive ? "bg-surface-2 text-fg" : "text-muted hover:text-fg",
+                    "relative flex h-8 items-center gap-2 rounded-lg px-3 text-[13px] font-medium transition-colors",
+                    isActive ? "text-fg" : "text-muted hover:text-fg",
                   )
                 }
               >
-                <n.icon className="size-4" />
-                {n.label}
+                {({ isActive }) => (
+                  <>
+                    {/* One pill, shared by every link, that slides to the active one. */}
+                    {isActive && <motion.span layoutId="nav-pill" transition={glide} className="absolute inset-0 rounded-lg bg-surface-2" />}
+                    <n.icon className="relative size-4" />
+                    <span className="relative">{n.label}</span>
+                  </>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -55,11 +60,23 @@ export function AppShell() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 pt-6 pb-28 sm:px-6 md:pb-12">
-        <ErrorBoundary key={pathname}>
-          <Suspense fallback={<Skeleton className="h-64 w-full rounded-2xl" />}>
-            <Outlet />
-          </Suspense>
-        </ErrorBoundary>
+        {/* The outgoing page fades out before the next one fades in; the scroll
+            reset waits for that exit so the old page never jumps to the top
+            while it is still visible. */}
+        <AnimatePresence mode="wait" onExitComplete={() => window.scrollTo({ top: 0 })}>
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0, transition: enter }}
+            exit={{ opacity: 0, transition: { ...fade, duration: 0.12 } }}
+          >
+            <ErrorBoundary>
+              <Suspense fallback={<Skeleton className="h-64 w-full rounded-2xl" />}>
+                <FrozenOutlet />
+              </Suspense>
+            </ErrorBoundary>
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Bottom tab bar on small screens */}
@@ -73,16 +90,31 @@ export function AppShell() {
             to={n.to}
             end={n.end}
             className={({ isActive }) =>
-              cn("flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium", isActive ? "text-accent" : "text-muted")
+              cn("relative flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors", isActive ? "text-accent" : "text-muted")
             }
           >
-            <n.icon className="size-5" />
-            {n.label}
+            {({ isActive }) => (
+              <>
+                {isActive && <motion.span layoutId="tab-indicator" transition={glide} className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-accent" />}
+                <n.icon className="size-5" />
+                {n.label}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
     </div>
   );
+}
+
+/** The route's element as it was when this page mounted. AnimatePresence keeps
+ *  the outgoing page rendered during its exit, but a live <Outlet /> would
+ *  already show the NEXT route inside it; freezing the element keeps the old
+ *  page on screen until it has faded. */
+function FrozenOutlet() {
+  const outlet = useOutlet();
+  const [frozen] = useState(outlet);
+  return frozen;
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion } from "motion/react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useActivities } from "@/lib/queries";
 import { capitalize, duration, fmtDate, km, num, pace } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { enter } from "@/lib/motion";
 
 const PAGE = 25;
 
@@ -73,9 +75,13 @@ export function ActivitiesPage() {
                 </tr>
               </thead>
               <tbody className="readout">
-                {data.items.map((a) => (
-                  <tr
+                {data.items.map((a, i) => (
+                  // Rows cascade in whenever a new page or search result arrives.
+                  <motion.tr
                     key={a.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...enter, delay: Math.min(i, 16) * 0.018 }}
                     tabIndex={0}
                     onClick={() => navigate(`/activities/${encodeURIComponent(a.id)}`)}
                     onKeyDown={(e) => e.key === "Enter" && navigate(`/activities/${encodeURIComponent(a.id)}`)}
@@ -95,7 +101,7 @@ export function ActivitiesPage() {
                     <td className="hidden px-4 py-3 text-right md:table-cell">{num(a.avg_hr)}</td>
                     <td className="hidden px-4 py-3 text-right lg:table-cell">{a.elevation_gain_m != null ? `${Math.round(a.elevation_gain_m)} m` : "–"}</td>
                     <td className="hidden px-4 py-3 lg:table-cell"><Badge>{capitalize(a.source)}</Badge></td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>

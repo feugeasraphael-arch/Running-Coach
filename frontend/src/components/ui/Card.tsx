@@ -1,8 +1,23 @@
 import type { HTMLAttributes, ReactNode } from "react";
+import { motion, type HTMLMotionProps } from "motion/react";
 import { cn } from "@/lib/cn";
+import { enter } from "@/lib/motion";
 
-export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <section className={cn("rounded-2xl bg-surface", className)} {...props} />;
+/** A panel. It rises into place the first time it scrolls into view, so a
+ *  long page (dashboard, activity detail, plan) settles in as it is read
+ *  rather than all at once. `data-reveal` lets print CSS force it visible. */
+export function Card({ className, ...props }: HTMLMotionProps<"section">) {
+  return (
+    <motion.section
+      data-reveal
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "0px 0px -40px 0px" }}
+      transition={enter}
+      className={cn("rounded-2xl bg-surface", className)}
+      {...props}
+    />
+  );
 }
 
 export function CardHeader({
