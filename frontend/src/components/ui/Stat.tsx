@@ -11,11 +11,11 @@ export function Stat({ label, value, unit, hint, className, size = "md" }: {
 }) {
   return (
     <div className={cn("min-w-0", className)}>
-      <div className="truncate text-xs text-muted">{label}</div>
+      <div className="label-mono truncate text-subtle">{label}</div>
       <div
         className={cn(
-          "tnum mt-0.5 flex items-baseline gap-1 font-semibold tracking-tight",
-          size === "lg" ? "text-3xl" : size === "md" ? "text-xl" : "text-base",
+          "readout mt-0.5 flex items-baseline gap-1 font-bold",
+          size === "lg" ? "text-[26px] leading-none" : size === "md" ? "text-lg" : "text-sm",
         )}
       >
         {value}

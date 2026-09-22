@@ -2,6 +2,7 @@ import { StrictMode, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { MotionConfig } from "motion/react";
 import "./index.css";
 import { AppShell } from "@/components/layout/AppShell";
 import { TooltipProvider } from "@/components/ui/Tooltip";
@@ -23,21 +24,23 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider delayDuration={120}>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<AppShell />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="activities" element={<ActivitiesPage />} />
-              <Route path="activities/:id" element={<ActivityDetailPage />} />
-              <Route path="plan" element={<PlanPage />} />
-              <Route path="cook" element={<CookPage />} />
-              <Route path="coach" element={<CoachPage />} />
-              <Route path="*" element={<EmptyState title="Page not found" hint="That URL doesn't match anything in Run Coach." />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <MotionConfig reducedMotion="user">
+        <TooltipProvider delayDuration={120}>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<AppShell />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="activities" element={<ActivitiesPage />} />
+                <Route path="activities/:id" element={<ActivityDetailPage />} />
+                <Route path="plan" element={<PlanPage />} />
+                <Route path="cook" element={<CookPage />} />
+                <Route path="coach" element={<CoachPage />} />
+                <Route path="*" element={<EmptyState title="Page not found" hint="That URL doesn't match anything in Run Coach." />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </MotionConfig>
     </QueryClientProvider>
   </StrictMode>,
 );

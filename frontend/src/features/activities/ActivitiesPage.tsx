@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion } from "motion/react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { HrZoneBar } from "@/components/charts/HrZoneBar";
+import { RouteShape } from "@/components/maps/RouteShape";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useActivities } from "@/lib/queries";
 import { capitalize, duration, fmtDate, km, num, pace } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { enter } from "@/lib/motion";
 
 const PAGE = 25;
 
@@ -61,6 +64,7 @@ export function ActivitiesPage() {
               <thead className="text-xs text-muted">
                 <tr className="border-b border-line">
                   <th className="px-4 py-2.5 font-medium">Date</th>
+                  <th className="hidden py-2.5 font-medium sm:table-cell"><span className="sr-only">Route</span></th>
                   <th className="px-4 py-2.5 font-medium">Name</th>
                   <th className="px-4 py-2.5 text-right font-medium">Distance</th>
                   <th className="hidden px-4 py-2.5 text-right font-medium sm:table-cell">Time</th>
@@ -70,16 +74,23 @@ export function ActivitiesPage() {
                   <th className="hidden px-4 py-2.5 font-medium lg:table-cell">Source</th>
                 </tr>
               </thead>
-              <tbody className="tnum">
-                {data.items.map((a) => (
-                  <tr
+              <tbody className="readout">
+                {data.items.map((a, i) => (
+                  // Rows cascade in whenever a new page or search result arrives.
+                  <motion.tr
                     key={a.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...enter, delay: Math.min(i, 16) * 0.018 }}
                     tabIndex={0}
                     onClick={() => navigate(`/activities/${encodeURIComponent(a.id)}`)}
                     onKeyDown={(e) => e.key === "Enter" && navigate(`/activities/${encodeURIComponent(a.id)}`)}
                     className="cursor-pointer border-b border-line last:border-0 hover:bg-surface-2 focus-visible:bg-surface-2"
                   >
                     <td className="px-4 py-3 whitespace-nowrap text-muted">{fmtDate(a.start_time, { weekday: "short", day: "numeric", month: "short", year: "2-digit" })}</td>
+                    <td className="hidden w-16 py-2 sm:table-cell">
+                      <RouteShape polyline={a.summary_polyline} className="h-8 w-14 opacity-80" strokeWidth={2.5} />
+                    </td>
                     <td className="max-w-72 px-4 py-2.5">
                       <div className="truncate font-medium">{a.name || capitalize(a.sport_type ?? "Run")}</div>
                       <HrZoneBar summary={a.hr_zones} zones={data.zones} className="mt-1 max-w-56" />
@@ -90,7 +101,7 @@ export function ActivitiesPage() {
                     <td className="hidden px-4 py-3 text-right md:table-cell">{num(a.avg_hr)}</td>
                     <td className="hidden px-4 py-3 text-right lg:table-cell">{a.elevation_gain_m != null ? `${Math.round(a.elevation_gain_m)} m` : "–"}</td>
                     <td className="hidden px-4 py-3 lg:table-cell"><Badge>{capitalize(a.source)}</Badge></td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
@@ -99,7 +110,7 @@ export function ActivitiesPage() {
 
         {data && data.total > PAGE && (
           <div className="flex items-center justify-between border-t border-line px-4 py-3 text-xs text-muted">
-            <span className="tnum">
+            <span className="readout">
               {(page - 1) * PAGE + 1}–{Math.min(page * PAGE, data.total)} of {data.total}
             </span>
             <div className="flex gap-1.5">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export type ToolStep = { name: string; label: string };
 export type ChatMessage = {
@@ -16,34 +16,15 @@ type Event =
   | { type: "error"; message: string }
   | { type: "done" };
 
-const STORAGE_KEY = "run-coach.chat.v1";
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-function load(): ChatMessage[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as ChatMessage[]) : [];
-    return parsed.filter((m) => !m.pending);
-  } catch {
-    return [];
-  }
-}
-
-/** Chat state + NDJSON streaming against POST /api/chat. The conversation
- *  lives in this browser's localStorage (server-side history comes later). */
-export function useCoachChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>(load);
+/** Chat state + NDJSON streaming against POST /api/chat. The conversation is
+ *  deliberately in-memory only: opening the page always starts from a blank slate.
+ *  `model` is the picker id sent with each turn (undefined = server default). */
+export function useCoachChat(model?: string) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    if (streaming) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-    } catch {
-      /* storage unavailable: the conversation just won't survive a reload */
-    }
-  }, [messages, streaming]);
 
   const patchLast = (fn: (m: ChatMessage) => ChatMessage) =>
     setMessages((ms) => (ms.length ? [...ms.slice(0, -1), fn(ms[ms.length - 1])] : ms));
@@ -67,12 +48,13 @@ export function useCoachChat() {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history.map(({ role, content }) => ({ role, content })) }),
+          body: JSON.stringify({ model, messages: history.map(({ role, content }) => ({ role, content })) }),
           signal: ctrl.signal,
         });
         if (!res.ok || !res.body) {
           const body = await res.json().catch(() => null);
-          throw new Error((body && JSON.stringify(body.detail)) || `HTTP ${res.status}`);
+          const detail = body?.detail;
+          throw new Error((typeof detail === "string" ? detail : detail && JSON.stringify(detail)) || `HTTP ${res.status}`);
         }
 
         const reader = res.body.getReader();
@@ -101,7 +83,7 @@ export function useCoachChat() {
         abortRef.current = null;
       }
     },
-    [messages, streaming],
+    [messages, streaming, model],
   );
 
   const stop = useCallback(() => abortRef.current?.abort(), []);

@@ -182,7 +182,7 @@ export function ThisWeekCard() {
                 {d.map((w, i) => (
                   <div
                     key={w.week_start}
-                    className={cn("flex-1 rounded-sm", i === d.length - 1 ? "bg-accent" : "bg-accent/25")}
+                    className={cn("flex-1 rounded-sm", i === d.length - 1 ? "bg-accent" : "bg-line-strong")}
                     style={{ height: `${Math.max((w.distance_km / max) * 100, 4)}%` }}
                     title={`${w.week_start}: ${w.distance_km} km`}
                   />

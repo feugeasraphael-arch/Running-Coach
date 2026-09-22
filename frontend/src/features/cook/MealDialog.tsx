@@ -51,11 +51,16 @@ export function RateButtons({ recipe, compact }: { recipe: Recipe; compact?: boo
   );
 }
 
-export function MealDialog({ selection, onClose }: { selection: { recipe: Recipe; context?: string } | null; onClose: () => void }) {
+export function MealDialog({ selection: live, onClose }: { selection: { recipe: Recipe; context?: string } | null; onClose: () => void }) {
+  // Keep showing the last recipe while the dialog animates out; `live` is
+  // already null by then and the panel would otherwise empty mid-exit.
+  const [last, setLast] = useState(live);
+  if (live && live !== last) setLast(live);
+  const selection = live ?? last;
   const m = selection?.recipe;
   return (
     <Dialog
-      open={!!m}
+      open={!!live}
       onOpenChange={(o) => !o && onClose()}
       title={m?.name ?? ""}
       description={m ? `${selection?.context ?? ""} · ${m.prep_time_min} min · ~${euro(m.est_cost_eur)}` : undefined}
@@ -83,7 +88,7 @@ export function MealDialog({ selection, onClose }: { selection: { recipe: Recipe
                 {m.ingredients.map((i) => (
                   <li key={i.item} className="flex justify-between gap-3 py-1.5">
                     <span>{i.item}</span>
-                    <span className="tnum shrink-0 text-muted">{i.qty}</span>
+                    <span className="readout shrink-0 text-muted">{i.qty}</span>
                   </li>
                 ))}
               </ul>

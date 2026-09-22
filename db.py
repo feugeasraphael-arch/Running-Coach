@@ -18,7 +18,12 @@ SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 # disk, so any DB created before a given column was added needs it patched
 # in here once.
 _ADDED_COLUMNS = {
-    "activities": [("gear_id", "TEXT")],
+    "activities": [
+        ("gear_id", "TEXT"),
+        ("summary_polyline", "TEXT"),
+        ("start_lat", "REAL"),
+        ("start_lng", "REAL"),
+    ],
     "wellness": [
         ("sleep_deep_s", "INTEGER"),
         ("sleep_light_s", "INTEGER"),
@@ -32,11 +37,43 @@ _ADDED_COLUMNS = {
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
+    added = set()
     for table, columns in _ADDED_COLUMNS.items():
         existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
         for name, sql_type in columns:
             if name not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {sql_type}")
+                added.add((table, name))
+    # Route columns arrived after the activities they describe, but the data
+    # didn't: fill them from raw_json right away rather than making the user
+    # re-sync. Only on the migration itself, so this doesn't re-scan every
+    # payload on every connection.
+    if ("activities", "summary_polyline") in added:
+        backfill_route_geometry(conn)
+        conn.commit()
+
+
+def backfill_route_geometry(conn: sqlite3.Connection) -> int:
+    """Populate summary_polyline / start_lat / start_lng from the Strava
+    payload already in raw_json, and return how many rows were filled.
+
+    Strava's activity-list response carries `map.summary_polyline` and
+    `start_latlng`, and ingest_strava stores the whole payload verbatim -- so
+    the entire history can be backfilled locally, without a single API call
+    or any rate-limit exposure. Indoor/manual activities have no GPS: Strava
+    sends an empty polyline for those, which stays NULL here.
+    """
+    cur = conn.execute(
+        """UPDATE activities SET
+               summary_polyline = json_extract(raw_json, '$.map.summary_polyline'),
+               start_lat        = json_extract(raw_json, '$.start_latlng[0]'),
+               start_lng        = json_extract(raw_json, '$.start_latlng[1]')
+           WHERE source = 'strava'
+             AND summary_polyline IS NULL
+             AND raw_json IS NOT NULL
+             AND COALESCE(json_extract(raw_json, '$.map.summary_polyline'), '') != ''"""
+    )
+    return cur.rowcount
 
 
 def get_connection() -> sqlite3.Connection:
@@ -54,7 +91,8 @@ def upsert_activity(conn: sqlite3.Connection, activity: dict) -> None:
         "id", "source", "external_id", "name", "sport_type", "start_time", "timezone",
         "distance_m", "moving_time_s", "elapsed_time_s", "elevation_gain_m",
         "avg_speed_mps", "avg_pace_s_per_km", "avg_hr", "max_hr", "avg_cadence",
-        "calories", "perceived_effort", "gear_id", "raw_json",
+        "calories", "perceived_effort", "gear_id",
+        "summary_polyline", "start_lat", "start_lng", "raw_json",
     ]
     placeholders = ", ".join(f":{c}" for c in columns)
     updates = ", ".join(f"{c}=excluded.{c}" for c in columns if c != "id")

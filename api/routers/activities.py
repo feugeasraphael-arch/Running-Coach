@@ -15,7 +15,8 @@ router = APIRouter(prefix="/api/activities", tags=["activities"])
 
 _LIST_COLUMNS = (
     "id, source, name, sport_type, start_time, distance_m, moving_time_s, elevation_gain_m, "
-    "avg_pace_s_per_km, avg_hr, max_hr, avg_cadence, calories, perceived_effort"
+    "avg_pace_s_per_km, avg_hr, max_hr, avg_cadence, calories, perceived_effort, "
+    "summary_polyline, start_lat, start_lng"
 )
 
 
