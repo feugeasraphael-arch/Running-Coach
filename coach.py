@@ -224,44 +224,86 @@ def get_gear_status(conn) -> dict:
     return {"gear": gear, "alert": alert}
 
 
-def get_recovery_status(conn) -> dict:
-    """Latest COMPLETE day's wellness reading vs. the trailing 7-day average
-    of the days before it.
+# Signals a recovery read can be built from, best first. Garmin only fills in
+# some of these depending on the device and account -- HRV, training readiness
+# and sleep score come back empty for every day on some watches -- so the read
+# uses whichever ones actually carry data instead of a fixed trio. `scale` says
+# how a change is normalised: "points" for the 0-100 scored metrics (raw
+# difference), "percent" for open-ended ones (percent off baseline), so they
+# can be averaged together.
+_RECOVERY_SIGNALS = [
+    # key, label, unit, higher_is_better, scale, decimals
+    ("body_battery_high", "Body battery", None, True, "points", 0),
+    ("training_readiness", "Readiness", None, True, "points", 0),
+    ("hrv_ms", "HRV", "ms", True, "percent", 0),
+    ("sleep_hours", "Sleep", "h", True, "percent", 1),
+    ("resting_hr", "Resting HR", "bpm", False, "percent", 0),
+    ("stress_avg", "Stress", None, False, "points", 0),
+]
 
-    Deliberately excludes today even once it has a row: body_battery_high is
-    an intraday running max, so a same-day reading is still accumulating and
-    will almost always look "lower" than a full week of complete days simply
-    because the day isn't over yet -- not because anything has actually
-    changed. Anchoring on the last complete day keeps the comparison
-    apples-to-apples regardless of what time of day this is called.
+# One unusual night (sleep especially) swings far harder than the other
+# signals; clamp each contribution so a single outlier can't decide the status.
+_RECOVERY_SIGNAL_CAP = 25.0
+
+
+def _recovery_values(row) -> dict:
+    """The row's signal values, with sleep converted to the hours the
+    frontend shows rather than raw seconds."""
+    vals = {
+        k: row[k]
+        for k in ("resting_hr", "hrv_ms", "body_battery_high", "training_readiness", "stress_avg")
+    }
+    vals["sleep_hours"] = row["sleep_duration_s"] / 3600 if row["sleep_duration_s"] else None
+    return vals
+
+
+def get_recovery_status(conn) -> dict:
+    """The most recent wellness reading vs. the average of the 7 readings
+    before it -- the same latest day the wellness chart draws, so the card and
+    the chart never disagree about what "today" is.
+
+    Body battery is an intraday running max, so a reading taken mid-morning is
+    still climbing; that is true of most stored days too (each row is whatever
+    Garmin had at sync time), which keeps today comparable to its own baseline.
     """
-    today = datetime.utcnow().date().isoformat()
     rows = conn.execute(
-        "SELECT * FROM wellness WHERE date < ? ORDER BY date DESC LIMIT 8", (today,)
+        """SELECT date, resting_hr, hrv_ms, body_battery_high, training_readiness,
+                  stress_avg, sleep_duration_s
+           FROM wellness ORDER BY date DESC LIMIT 8"""
     ).fetchall()
 
     if not rows:
-        return {"status": "no_data", "detail": "No Garmin wellness data synced yet."}
+        return {"status": "no_data", "detail": "No Garmin wellness data synced yet.", "metrics": []}
 
-    latest, prior = rows[0], rows[1:8]
+    latest = _recovery_values(rows[0])
+    prior = [_recovery_values(r) for r in rows[1:8]]
 
-    def avg(field):
-        vals = [r[field] for r in prior if r[field] is not None]
-        return statistics.mean(vals) if vals else None
-
-    prior_readiness = avg("training_readiness")
-    prior_battery = avg("body_battery_high")
-    prior_hrv = avg("hrv_ms")
-
-    signals = []
-    if latest["training_readiness"] is not None and prior_readiness is not None:
-        signals.append(latest["training_readiness"] - prior_readiness)
-    if latest["body_battery_high"] is not None and prior_battery is not None:
-        signals.append(latest["body_battery_high"] - prior_battery)
-    if latest["hrv_ms"] is not None and prior_hrv is not None:
-        # HRV moves in much smaller absolute units than the 0-100 scores
-        # above; express it as a percent-off-baseline so it's comparable.
-        signals.append((latest["hrv_ms"] - prior_hrv) / max(prior_hrv, 1) * 100)
+    metrics, signals = [], []
+    for key, label, unit, higher_is_better, scale, decimals in _RECOVERY_SIGNALS:
+        value = latest[key]
+        if value is None:
+            continue
+        past = [p[key] for p in prior if p[key] is not None]
+        baseline = statistics.mean(past) if past else None
+        metrics.append(
+            {
+                "key": key,
+                "label": label,
+                "unit": unit,
+                "value": round(value, decimals),
+                "prior_7d_avg": round(baseline, decimals) if baseline is not None else None,
+                "higher_is_better": higher_is_better,
+                "decimals": decimals,
+            }
+        )
+        if baseline is None:
+            continue
+        diff = value - baseline
+        if scale == "percent":
+            diff = diff / max(abs(baseline), 1e-9) * 100
+        if not higher_is_better:
+            diff = -diff  # lower resting HR / stress means better recovered
+        signals.append(max(-_RECOVERY_SIGNAL_CAP, min(_RECOVERY_SIGNAL_CAP, diff)))
 
     if not signals:
         status = "no_data"
@@ -274,15 +316,23 @@ def get_recovery_status(conn) -> dict:
         else:
             status = "normal"
 
+    by_key = {m["key"]: m for m in metrics}
+
+    def val(key, field):
+        return by_key[key][field] if key in by_key else None
+
     return {
         "status": status,
-        "date": latest["date"],
-        "training_readiness": latest["training_readiness"],
-        "body_battery_high": latest["body_battery_high"],
-        "hrv_ms": latest["hrv_ms"],
-        "prior_7d_avg_training_readiness": round(prior_readiness, 1) if prior_readiness is not None else None,
-        "prior_7d_avg_body_battery_high": round(prior_battery, 1) if prior_battery is not None else None,
-        "prior_7d_avg_hrv_ms": round(prior_hrv, 1) if prior_hrv is not None else None,
+        "date": rows[0]["date"],
+        "metrics": metrics,
+        # Flat keys kept for the AI-coach context block and anything else that
+        # reads the three original fields by name.
+        "training_readiness": val("training_readiness", "value"),
+        "body_battery_high": val("body_battery_high", "value"),
+        "hrv_ms": val("hrv_ms", "value"),
+        "prior_7d_avg_training_readiness": val("training_readiness", "prior_7d_avg"),
+        "prior_7d_avg_body_battery_high": val("body_battery_high", "prior_7d_avg"),
+        "prior_7d_avg_hrv_ms": val("hrv_ms", "prior_7d_avg"),
     }
 
 

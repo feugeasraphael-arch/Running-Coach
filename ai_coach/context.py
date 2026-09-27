@@ -137,12 +137,18 @@ def _load_and_recovery(conn) -> list[str]:
         )
     rec = coach.get_recovery_status(conn)
     if rec.get("status") and rec["status"] != "no_data":
-        lines.append(
-            "- Recovery {} on {}: body battery high {}, HRV {}, readiness {}".format(
-                rec["status"], rec["date"], rec.get("body_battery_high"),
-                rec.get("hrv_ms"), rec.get("training_readiness"),
+        # Only the signals this watch actually records are present, so list
+        # what came back rather than naming three fields that may be empty.
+        parts = [
+            "{} {}{} (7d avg {})".format(
+                m["label"].lower(),
+                _num(m["value"], m["decimals"]),
+                m["unit"] or "",
+                _num(m["prior_7d_avg"], m["decimals"]),
             )
-        )
+            for m in rec.get("metrics", [])
+        ]
+        lines.append("- Recovery {} on {}: {}".format(rec["status"], rec["date"], ", ".join(parts)))
     return lines or ["- (no load or recovery data synced yet)"]
 
 
