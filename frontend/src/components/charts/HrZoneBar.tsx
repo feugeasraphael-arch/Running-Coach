@@ -1,9 +1,9 @@
 import { Tooltip } from "@/components/ui/Tooltip";
+import { zoneColor } from "@/lib/scales";
 import { cn } from "@/lib/cn";
 import { duration } from "@/lib/format";
 import type { HrZone, HrZoneSummary } from "@/lib/types";
 
-export const zoneColor = (zone: number) => (zone ? `var(--zone-${Math.min(zone, 5)})` : "var(--surface-2)");
 
 const bpmRange = (z: HrZone) => (z.max_bpm == null ? `> ${Math.round(z.min_bpm)} bpm` : `${Math.round(z.min_bpm)}–${Math.round(z.max_bpm)} bpm`);
 

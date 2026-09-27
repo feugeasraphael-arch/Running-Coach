@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Area, AreaChart, CartesianGrid, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowLeft, HeartPulse, Info, MessageSquareQuote, Timer } from "lucide-react";
+import { ArrowLeft, HeartPulse, Info, MapPin, MessageSquareQuote, Timer } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Stat } from "@/components/ui/Stat";
 import { C, ChartTip, Legend, axisProps, downsample, gridProps } from "@/components/charts/chartKit";
 import { HrZoneStrip, ZoneBreakdown } from "@/components/charts/HrZoneBar";
+import { RouteMap } from "@/components/maps/RouteMap";
 import { useActivity } from "@/lib/queries";
 import { capitalize, dateTime, duration, isNum, km, LOCALE, num, pace } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -93,6 +94,7 @@ function Detail({ data }: { data: ActivityDetail }) {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {data.intervals && <IntervalSummary iv={data.intervals} />}
+          <RouteCard detail={data} />
           <StreamCharts streams={data.streams} splits={data.splits_kind === "intervals" ? data.splits : []} />
           {data.splits.length > 0 && <Splits splits={data.splits} kind={data.splits_kind} />}
         </div>
@@ -123,6 +125,25 @@ function Detail({ data }: { data: ActivityDetail }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Route card. Uses the live GPS stream when the detail fetch returned one,
+ *  otherwise the polyline stored at sync time -- so the map still draws when
+ *  Strava is rate-limited or offline. Silent when the run has no GPS at all
+ *  (treadmill, manual entry), rather than showing an empty grey box. */
+function RouteCard({ detail }: { detail: ActivityDetail }) {
+  const points = detail.streams.latlng;
+  const polyline = detail.activity.summary_polyline;
+  if (!points?.length && !polyline) return null;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader title="Route" icon={<MapPin />} />
+      <CardBody className="pt-3">
+        <RouteMap points={points} polyline={polyline} className="h-80 overflow-hidden rounded-xl border border-line" />
+      </CardBody>
+    </Card>
   );
 }
 
@@ -203,10 +224,16 @@ function StreamCharts({ streams, splits }: { streams: Streams; splits: Split[] }
       dist.map((d, i) => {
         const v = smoothVel[i];
         const p = isNum(v) && v > 0 ? 1000 / v : null;
+        // Strava counts one leg's strides here, exactly as it does for the
+        // summary average_cadence (see ingest_strava), so double it to the
+        // steps/min the rest of the app speaks in. A zero is standing still,
+        // not a reading -- leave it out so the line doesn't dive to the floor.
+        const c = streams.cadence?.[i];
         return {
           km: d / 1000,
           hr: streams.heartrate?.[i] ?? null,
           pace: p != null && p >= PACE_MIN && p <= PACE_MAX ? p : null,
+          cad: isNum(c) && c > 0 ? c * 2 : null,
           alt: streams.altitude?.[i] ?? null,
         };
       }),
@@ -224,6 +251,7 @@ function StreamCharts({ streams, splits }: { streams: Streams; splits: Split[] }
   const defs = [
     { key: "pace", title: "Pace", color: C.distance, fmt: (v: number) => pace(v), tick: (v: number) => pace(v, false), reversed: true },
     { key: "hr", title: "Heart rate", color: C.hr, fmt: (v: number) => `${Math.round(v)} bpm`, tick: (v: number) => String(Math.round(v)) },
+    { key: "cad", title: "Cadence", color: C.stress, fmt: (v: number) => `${Math.round(v)} spm`, tick: (v: number) => String(Math.round(v)) },
     { key: "alt", title: "Elevation", color: C.battery, fmt: (v: number) => `${Math.round(v)} m`, tick: (v: number) => String(Math.round(v)) },
   ] as const;
 
@@ -285,6 +313,7 @@ function StreamCharts({ streams, splits }: { streams: Streams; splits: Split[] }
                               })(),
                               { label: "Pace", value: pace(payload[0].payload.pace), color: C.distance },
                               { label: "HR", value: isNum(payload[0].payload.hr) ? `${Math.round(payload[0].payload.hr)} bpm` : "–", color: C.hr },
+                              { label: "Cadence", value: isNum(payload[0].payload.cad) ? `${Math.round(payload[0].payload.cad)} spm` : "–", color: C.stress },
                               { label: "Elevation", value: isNum(payload[0].payload.alt) ? `${Math.round(payload[0].payload.alt)} m` : "–", color: C.battery },
                             ]}
                           />
@@ -350,7 +379,7 @@ function Splits({ splits, kind }: { splits: Split[]; kind: ActivityDetail["split
     <Card className="overflow-hidden">
       <CardHeader title={title} subtitle={hasKind ? "Work reps compared against the target pace" : undefined} />
       <div className="mt-3 overflow-x-auto">
-        <table className="tnum w-full text-[13px]">
+        <table className="readout w-full text-[13px]">
           <thead className="text-xs text-muted">
             <tr className="border-y border-line">
               <th className="px-5 py-2 text-left font-medium">#</th>

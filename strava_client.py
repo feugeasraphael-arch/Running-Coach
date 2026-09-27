@@ -146,7 +146,7 @@ def get_access_token() -> str:
     return payload["access_token"]
 
 
-STREAM_KEYS = "time,distance,heartrate,altitude,velocity_smooth,cadence,grade_smooth"
+STREAM_KEYS = "time,distance,heartrate,altitude,velocity_smooth,cadence,grade_smooth,latlng"
 
 
 def get_activity_streams(access_token: str, external_id: str) -> dict:

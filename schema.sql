@@ -22,6 +22,15 @@ CREATE TABLE IF NOT EXISTS activities (
     calories            REAL,
     perceived_effort    REAL,                  -- Strava suffer_score or Garmin trainingEffort, scaled 0-100
     gear_id             TEXT,                  -- Strava gear id (shoe/bike), e.g. "g12345678"
+    -- Route geometry, Strava-only. summary_polyline is Strava's own reduced
+    -- encoded polyline (Google polyline algorithm, precision 5) as returned on
+    -- the activity list -- enough to draw a route shape without a per-activity
+    -- streams call. NULL for activities with no GPS (treadmill, manual entry).
+    -- The full-resolution track isn't stored: it's fetched live as the `latlng`
+    -- stream by the activity-detail endpoint.
+    summary_polyline    TEXT,
+    start_lat           REAL,
+    start_lng           REAL,
     raw_json            TEXT,                  -- original payload, for reprocessing if schema evolves
     created_at          TEXT DEFAULT (datetime('now')),
     UNIQUE (source, external_id)

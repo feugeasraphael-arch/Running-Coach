@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ListChecks } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { HrZoneBar } from "@/components/charts/HrZoneBar";
+import { RouteShape } from "@/components/maps/RouteShape";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { QueryState } from "@/components/ui/QueryState";
@@ -46,6 +47,7 @@ export function RecentActivities() {
                       </div>
                       <HrZoneBar summary={a.hr_zones} zones={d.zones} className="mt-1" />
                     </div>
+                    <RouteShape polyline={a.summary_polyline} className="h-9 w-12 shrink-0 opacity-70" strokeWidth={2.5} />
                   </Link>
                 </li>
               ))}

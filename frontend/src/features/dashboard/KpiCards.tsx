@@ -11,6 +11,7 @@ import { fmtDate, isNum, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ACWR_BANDS, RECOVERY, vo2Band } from "./tones";
 import { C } from "@/components/charts/chartKit";
+import type { RecoveryMetric } from "@/lib/types";
 
 const StatsSkeleton = () => (
   <div className="space-y-3">
@@ -78,19 +79,36 @@ export function TrainingLoadCard() {
   );
 }
 
+// Tailwind needs the whole class name in the source, so map the count rather
+// than interpolating it. Four signals read better stacked 2x2 in a card this
+// narrow than squeezed into one row of truncated labels.
+const METRIC_GRID: Record<number, string> = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-2" };
+
+function MetricDelta({ m }: { m: RecoveryMetric }) {
+  if (!isNum(m.prior_7d_avg)) return null;
+  const diff = m.value - m.prior_7d_avg;
+  const up = diff >= 0;
+  const better = m.higher_is_better ? up : !up;
+  return (
+    <span className={cn("tnum", better ? "text-good" : "text-warn")}>
+      {up ? "▲" : "▼"} {Math.abs(diff).toFixed(m.decimals)} vs 7d
+    </span>
+  );
+}
+
 export function RecoveryCard() {
   const q = useRecovery();
   return (
     <KpiCard title="Recovery" icon={<HeartPulse />}>
-      <QueryState query={q} loading={<StatsSkeleton />} empty={<EmptyState compact title="No wellness data" hint="Sync Garmin to see recovery." />}>
+      <QueryState
+        query={q}
+        loading={<StatsSkeleton />}
+        isEmpty={(d) => d.status === "no_data" || d.metrics.length === 0}
+        empty={<EmptyState compact title="No wellness data" hint="Sync Garmin to see recovery." />}
+      >
         {(d) => {
           const r = RECOVERY[d.status] ?? RECOVERY.no_data;
-          const delta = (cur: number | null, prev: number | null) =>
-            isNum(cur) && isNum(prev) ? (
-              <span className={cn("tnum", cur >= prev ? "text-good" : "text-warn")}>
-                {cur >= prev ? "▲" : "▼"} {Math.abs(cur - prev).toFixed(0)} vs 7d
-              </span>
-            ) : undefined;
+          const metrics = d.metrics.slice(0, 4);
           return (
             <>
               <div className="flex items-baseline justify-between gap-2">
@@ -99,10 +117,17 @@ export function RecoveryCard() {
               <p className="mt-1 text-xs text-muted">
                 {r.detail} · {fmtDate(d.date, { weekday: "short", day: "numeric", month: "short" })}
               </p>
-              <div className="mt-auto grid grid-cols-3 gap-3 border-t border-line pt-3">
-                <Stat size="sm" label="Body battery" value={num(d.body_battery_high)} hint={delta(d.body_battery_high, d.prior_7d_avg_body_battery_high)} />
-                <Stat size="sm" label="HRV" value={num(d.hrv_ms)} unit={isNum(d.hrv_ms) ? "ms" : undefined} hint={delta(d.hrv_ms, d.prior_7d_avg_hrv_ms)} />
-                <Stat size="sm" label="Readiness" value={num(d.training_readiness)} hint={delta(d.training_readiness, d.prior_7d_avg_training_readiness)} />
+              <div className={cn("mt-auto grid gap-3 border-t border-line pt-3", METRIC_GRID[metrics.length] ?? "grid-cols-2")}>
+                {metrics.map((m) => (
+                  <Stat
+                    key={m.key}
+                    size="sm"
+                    label={m.label}
+                    value={num(m.value, m.decimals)}
+                    unit={m.unit ?? undefined}
+                    hint={<MetricDelta m={m} />}
+                  />
+                ))}
               </div>
             </>
           );
@@ -182,7 +207,7 @@ export function ThisWeekCard() {
                 {d.map((w, i) => (
                   <div
                     key={w.week_start}
-                    className={cn("flex-1 rounded-sm", i === d.length - 1 ? "bg-accent" : "bg-accent/25")}
+                    className={cn("flex-1 rounded-sm", i === d.length - 1 ? "bg-accent" : "bg-line-strong")}
                     style={{ height: `${Math.max((w.distance_km / max) * 100, 4)}%` }}
                     title={`${w.week_start}: ${w.distance_km} km`}
                   />

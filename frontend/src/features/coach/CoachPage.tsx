@@ -2,9 +2,24 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { motion } from "motion/react";
 import { ArrowUp, Check, Loader2, RotateCcw, Sparkles, Square, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useCoachChat, type ChatMessage } from "./useCoachChat";
+import { ModelPicker, type CoachModel } from "./ModelPicker";
+import { enter, tap } from "@/lib/motion";
+
+type ChatStatus = { configured: boolean; default_model: string; models: CoachModel[] };
+
+const MODEL_KEY = "coach.model";
+
+function readStoredModel(): string | null {
+  try {
+    return localStorage.getItem(MODEL_KEY);
+  } catch {
+    return null;
+  }
+}
 
 const SUGGESTIONS = [
   "What should I run tomorrow, given my recovery?",
@@ -14,11 +29,24 @@ const SUGGESTIONS = [
 ];
 
 export function CoachPage() {
-  const { messages, streaming, send, stop, reset } = useCoachChat();
   const status = useQuery({
     queryKey: ["chat", "status"],
-    queryFn: async () => (await fetch("/api/chat/status")).json() as Promise<{ configured: boolean; model: string }>,
+    queryFn: async () => (await fetch("/api/chat/status")).json() as Promise<ChatStatus>,
   });
+  const [picked, setPicked] = useState<string | null>(readStoredModel);
+  const models = status.data?.models ?? [];
+  // A remembered model can disappear (key removed, model retired): fall back to the default.
+  const model = models.some((m) => m.id === picked) ? picked! : status.data?.default_model;
+  const currentModel = models.find((m) => m.id === model);
+  const pickModel = (id: string) => {
+    setPicked(id);
+    try {
+      localStorage.setItem(MODEL_KEY, id);
+    } catch {
+      /* private mode: the choice just won't be remembered */
+    }
+  };
+  const { messages, streaming, send, stop, reset } = useCoachChat(model);
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -52,7 +80,7 @@ export function CoachPage() {
           </span>
           <div>
             <h1 className="text-base font-semibold tracking-tight">AI Coach</h1>
-            <p className="text-xs text-muted">{status.data ? `Mistral · ${status.data.model}` : "Mistral"} · reads your live data</p>
+            <p className="text-xs text-muted">{currentModel ? `Mistral · ${currentModel.label}` : "Mistral"} · reads your live data</p>
           </div>
         </div>
         {!empty && (
@@ -79,15 +107,19 @@ export function CoachPage() {
               It checks your recovery, training load, plan and sessions before answering.
             </p>
             <div className="mt-8 grid w-full gap-2 sm:grid-cols-2">
-              {SUGGESTIONS.map((s) => (
-                <button
+              {SUGGESTIONS.map((s, i) => (
+                <motion.button
                   key={s}
                   type="button"
                   onClick={() => submit(s)}
-                  className="rounded-xl border border-line bg-surface p-3.5 text-left text-[13px] transition-colors hover:border-line-strong hover:bg-surface-2"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0, transition: { ...enter, delay: 0.1 + i * 0.05 } }}
+                  whileHover={{ y: -2 }}
+                  whileTap={tap}
+                  className="rounded-xl border border-line-strong bg-surface-2 p-3.5 text-left text-[13px] transition-colors hover:border-accent/50"
                 >
                   {s}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -102,7 +134,7 @@ export function CoachPage() {
       </div>
 
       <div className="sticky bottom-20 mt-4 md:bottom-4">
-        <div className="flex items-end gap-2 rounded-2xl border border-line bg-surface p-2 shadow-card focus-within:border-line-strong">
+        <div className="rounded-2xl border border-line-strong bg-surface-2 p-2 focus-within:border-accent/60">
           <textarea
             ref={inputRef}
             value={draft}
@@ -111,17 +143,20 @@ export function CoachPage() {
             rows={1}
             placeholder="Ask your question…"
             aria-label="Message to the coach"
-            className="field-sizing-content max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-[14px] outline-none placeholder:text-subtle"
+            className="field-sizing-content max-h-40 min-h-9 w-full resize-none bg-transparent px-2 py-2 text-[14px] outline-none placeholder:text-subtle"
           />
-          {streaming ? (
-            <Button size="icon" onClick={stop} aria-label="Stop">
-              <Square className="size-3.5 fill-current" />
-            </Button>
-          ) : (
-            <Button size="icon" variant="primary" onClick={() => submit()} disabled={!draft.trim()} aria-label="Send">
-              <ArrowUp />
-            </Button>
-          )}
+          <div className="flex items-center justify-between gap-2">
+            <ModelPicker models={models} value={model ?? ""} onChange={pickModel} disabled={streaming} />
+            {streaming ? (
+              <Button size="icon" onClick={stop} aria-label="Stop">
+                <Square className="size-3.5 fill-current" />
+              </Button>
+            ) : (
+              <Button size="icon" variant="primary" onClick={() => submit()} disabled={!draft.trim()} aria-label="Send">
+                <ArrowUp />
+              </Button>
+            )}
+          </div>
         </div>
         <p className="mt-1.5 text-center text-[11px] text-subtle">The coach can be wrong — double-check before changing your plan.</p>
       </div>
@@ -132,14 +167,14 @@ export function CoachPage() {
 function Message({ m }: { m: ChatMessage }) {
   if (m.role === "user") {
     return (
-      <div className="flex justify-end">
+      <motion.div className="flex justify-end" initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={enter} style={{ originX: 1, originY: 1 }}>
         <div className="max-w-[85%] rounded-2xl rounded-br-md bg-accent px-4 py-2.5 text-[14px] whitespace-pre-wrap text-accent-fg">{m.content}</div>
-      </div>
+      </motion.div>
     );
   }
   const thinking = m.pending && !m.content;
   return (
-    <div className="flex gap-3">
+    <motion.div className="flex gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ ...enter, delay: 0.08 }}>
       <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
         <Sparkles className="size-3.5" />
       </span>
@@ -149,10 +184,16 @@ function Message({ m }: { m: ChatMessage }) {
             {m.tools.map((t, i) => {
               const running = m.pending && !m.content && i === m.tools!.length - 1;
               return (
-                <li key={i} className="flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] text-muted">
+                <motion.li
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={enter}
+                  className="flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] text-muted"
+                >
                   {running ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3 text-good" />}
                   {t.label}
-                </li>
+                </motion.li>
               );
             })}
           </ul>
@@ -173,6 +214,6 @@ function Message({ m }: { m: ChatMessage }) {
           </p>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

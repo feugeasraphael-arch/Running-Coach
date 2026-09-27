@@ -73,7 +73,7 @@ export function ShoppingListDialog({ open, onOpenChange }: { open: boolean; onOp
                       <label className="flex cursor-pointer items-center gap-2.5 rounded-lg py-1.5 text-[13px]">
                         <input type="checkbox" checked={done} onChange={() => toggle(key)} className="size-4 accent-[var(--accent)]" />
                         <span className={cn("flex-1", done && "text-subtle line-through")}>{i.item}</span>
-                        <span className="tnum text-xs text-muted">{i.quantity}</span>
+                        <span className="readout text-xs text-muted">{i.quantity}</span>
                       </label>
                     </li>
                   );

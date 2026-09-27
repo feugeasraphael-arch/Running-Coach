@@ -23,7 +23,7 @@ export const gridProps = { stroke: C.grid, vertical: false } as const;
 
 export function ChartTip({ title, rows }: { title: ReactNode; rows: { label: ReactNode; value: ReactNode; color?: string }[] }) {
   return (
-    <div className="min-w-36 rounded-lg border border-line bg-surface px-3 py-2 text-xs shadow-xl">
+    <div className="min-w-36 rounded-lg border border-line-strong bg-surface-2 px-3 py-2 text-xs shadow-xl">
       <div className="mb-1.5 font-medium">{title}</div>
       <div className="space-y-1">
         {rows.map((r, i) => (

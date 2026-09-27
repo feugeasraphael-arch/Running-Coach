@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useEffortCalendar } from "@/lib/queries";
 import { fmtDate, isoDay, km, LOCALE, pace } from "@/lib/format";
 import type { EffortDay } from "@/lib/types";
+import { HEAT_LEVELS, heatColor } from "@/lib/scales";
 
 const WEEKS = 53;
 const SHIFT = 26;
@@ -109,7 +110,7 @@ export function EffortHeatmap() {
                             type="button"
                             aria-label={`${fmtDate(iso)}: ${entry.level_label} effort, ${entry.activity.name ?? "run"}`}
                             className="aspect-square rounded-[3px] ring-fg/40 transition-shadow hover:ring-2"
-                            style={{ background: `var(--heat-${level})` }}
+                            style={{ background: heatColor(level) }}
                             onMouseEnter={(e) => show(e.currentTarget)}
                             onFocus={(e) => show(e.currentTarget)}
                             onBlur={() => setHover(null)}
@@ -119,7 +120,7 @@ export function EffortHeatmap() {
                           <span
                             key={iso}
                             className="aspect-square rounded-[3px]"
-                            style={{ background: "var(--heat-0)" }}
+                            style={{ background: heatColor(0) }}
                             onMouseEnter={(e) => show(e.currentTarget)}
                           />
                         );
@@ -132,8 +133,8 @@ export function EffortHeatmap() {
 
             <div className="mt-3 flex items-center justify-end gap-1.5 text-[11px] text-subtle">
               Easier
-              {[0, 1, 2, 3, 4, 5].map((l) => (
-                <span key={l} className="size-[11px] rounded-[3px]" style={{ background: `var(--heat-${l})` }} />
+              {HEAT_LEVELS.map((l) => (
+                <span key={l} className="size-[11px] rounded-[3px]" style={{ background: heatColor(l) }} />
               ))}
               Harder
             </div>
@@ -141,7 +142,7 @@ export function EffortHeatmap() {
             {hover && (
               <div
                 role="tooltip"
-                className="pointer-events-none absolute z-20 w-max max-w-60 -translate-x-1/2 -translate-y-full rounded-lg border border-line bg-surface px-3 py-2 text-xs shadow-xl"
+                className="pointer-events-none absolute z-20 w-max max-w-60 -translate-x-1/2 -translate-y-full rounded-lg border border-line-strong bg-surface-2 px-3 py-2 text-xs shadow-xl"
                 style={{ left: Math.max(90, Math.min(hover.x, (wrapRef.current?.clientWidth ?? 0) - 90)), top: hover.y - 6 }}
               >
                 <div className="text-muted">{fmtDate(hover.date, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</div>
@@ -154,7 +155,7 @@ export function EffortHeatmap() {
                       {hover.entry.activity.avg_hr != null && <span>{Math.round(hover.entry.activity.avg_hr)} bpm</span>}
                     </div>
                     <div className="mt-1.5 flex items-center gap-1.5">
-                      <span className="size-2 rounded-full" style={{ background: `var(--heat-${hover.entry.level})` }} />
+                      <span className="size-2 rounded-full" style={{ background: heatColor(hover.entry.level) }} />
                       {hover.entry.level_label} effort
                       {hover.entry.count > 1 && <span className="text-subtle">· +{hover.entry.count - 1} more</span>}
                     </div>

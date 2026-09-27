@@ -1,12 +1,14 @@
-import { forwardRef, type ButtonHTMLAttributes } from "react";
+import { forwardRef } from "react";
+import { motion, type HTMLMotionProps } from "motion/react";
 import { cn } from "@/lib/cn";
+import { tap } from "@/lib/motion";
 
 type Variant = "primary" | "secondary" | "ghost";
 type Size = "sm" | "md" | "icon";
 
 const variants: Record<Variant, string> = {
   primary: "bg-accent text-accent-fg hover:brightness-110 active:brightness-95",
-  secondary: "border border-line bg-surface text-fg hover:bg-surface-2",
+  secondary: "border border-line-strong bg-surface-2 text-fg hover:bg-surface",
   ghost: "text-muted hover:bg-surface-2 hover:text-fg",
 };
 
@@ -16,11 +18,12 @@ const sizes: Record<Size, string> = {
   icon: "size-8 rounded-lg",
 };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }>(
+export const Button = forwardRef<HTMLButtonElement, HTMLMotionProps<"button"> & { variant?: Variant; size?: Size }>(
   ({ className, variant = "secondary", size = "md", type = "button", ...props }, ref) => (
-    <button
+    <motion.button
       ref={ref}
       type={type}
+      whileTap={tap}
       className={cn(
         "inline-flex shrink-0 items-center justify-center font-medium whitespace-nowrap transition-[background-color,filter,color] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
         variants[variant],

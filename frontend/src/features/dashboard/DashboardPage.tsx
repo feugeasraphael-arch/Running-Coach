@@ -5,6 +5,7 @@ import { PaceHrChart, WeeklyMileageChart, WellnessChart } from "./TrendCharts";
 import { RaceTimes } from "./RaceTimes";
 import { RecentActivities } from "./RecentActivities";
 import { FormCard } from "./FormCard";
+import { TrainingMap } from "./TrainingMap";
 
 export function DashboardPage() {
   return (
@@ -19,6 +20,8 @@ export function DashboardPage() {
       </div>
 
       <EffortHeatmap />
+
+      <TrainingMap />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 [&>section]:h-full"><WeeklyMileageChart /></div>
