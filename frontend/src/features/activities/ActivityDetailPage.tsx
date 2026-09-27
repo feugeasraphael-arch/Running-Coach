@@ -224,10 +224,16 @@ function StreamCharts({ streams, splits }: { streams: Streams; splits: Split[] }
       dist.map((d, i) => {
         const v = smoothVel[i];
         const p = isNum(v) && v > 0 ? 1000 / v : null;
+        // Strava counts one leg's strides here, exactly as it does for the
+        // summary average_cadence (see ingest_strava), so double it to the
+        // steps/min the rest of the app speaks in. A zero is standing still,
+        // not a reading -- leave it out so the line doesn't dive to the floor.
+        const c = streams.cadence?.[i];
         return {
           km: d / 1000,
           hr: streams.heartrate?.[i] ?? null,
           pace: p != null && p >= PACE_MIN && p <= PACE_MAX ? p : null,
+          cad: isNum(c) && c > 0 ? c * 2 : null,
           alt: streams.altitude?.[i] ?? null,
         };
       }),
@@ -245,6 +251,7 @@ function StreamCharts({ streams, splits }: { streams: Streams; splits: Split[] }
   const defs = [
     { key: "pace", title: "Pace", color: C.distance, fmt: (v: number) => pace(v), tick: (v: number) => pace(v, false), reversed: true },
     { key: "hr", title: "Heart rate", color: C.hr, fmt: (v: number) => `${Math.round(v)} bpm`, tick: (v: number) => String(Math.round(v)) },
+    { key: "cad", title: "Cadence", color: C.stress, fmt: (v: number) => `${Math.round(v)} spm`, tick: (v: number) => String(Math.round(v)) },
     { key: "alt", title: "Elevation", color: C.battery, fmt: (v: number) => `${Math.round(v)} m`, tick: (v: number) => String(Math.round(v)) },
   ] as const;
 
@@ -306,6 +313,7 @@ function StreamCharts({ streams, splits }: { streams: Streams; splits: Split[] }
                               })(),
                               { label: "Pace", value: pace(payload[0].payload.pace), color: C.distance },
                               { label: "HR", value: isNum(payload[0].payload.hr) ? `${Math.round(payload[0].payload.hr)} bpm` : "–", color: C.hr },
+                              { label: "Cadence", value: isNum(payload[0].payload.cad) ? `${Math.round(payload[0].payload.cad)} spm` : "–", color: C.stress },
                               { label: "Elevation", value: isNum(payload[0].payload.alt) ? `${Math.round(payload[0].payload.alt)} m` : "–", color: C.battery },
                             ]}
                           />
