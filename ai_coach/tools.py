@@ -122,7 +122,7 @@ TOOLS: dict[str, tuple[dict, Callable[[dict], Any], str]] = {
         "Reading your coach summary",
     ),
     "get_recovery": (
-        _spec("get_recovery", "Latest complete day of Garmin recovery (training readiness, HRV, body battery) vs. the prior 7-day average."),
+        _spec("get_recovery", "Latest day of Garmin wellness vs. the prior 7 readings, using whichever signals the watch records (body battery, sleep, resting HR, stress, and HRV/readiness when available)."),
         get_recovery,
         "Checking your recovery",
     ),

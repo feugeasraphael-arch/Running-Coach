@@ -118,9 +118,24 @@ export interface Acwr {
   flag: AcwrFlag;
 }
 
+/** One signal behind the recovery read. Only the metrics Garmin actually
+ *  returns for this account are present, so the card renders the list it gets
+ *  rather than a fixed set of tiles. */
+export interface RecoveryMetric {
+  key: string;
+  label: string;
+  unit: Nullable<string>;
+  value: number;
+  prior_7d_avg: Nullable<number>;
+  /** False for resting HR and stress, where a drop is the good direction. */
+  higher_is_better: boolean;
+  decimals: number;
+}
+
 export interface Recovery {
   status: "no_data" | "well_recovered" | "fatigued" | "normal";
   date: string;
+  metrics: RecoveryMetric[];
   training_readiness: Nullable<number>;
   body_battery_high: Nullable<number>;
   hrv_ms: Nullable<number>;
