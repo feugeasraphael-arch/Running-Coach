@@ -16,3 +16,6 @@ This first project's aim -appart from the improved training - is to introduce me
 
 ## What I'd like to improve
 
+1) Make the app easly available to anyone. (1 caveat being that it relies on the Strava API, that requires a paid subscription). That would make me learn more about cross apps connections and be a ready to ship product.
+2) Create a Machine Learning tool that would use runners' data to predict race paces.
+3) Improving the visuals of the map
