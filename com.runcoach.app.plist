@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Template. Replace /path/to/run-coach throughout, then install it:
+
+      cp com.runcoach.app.plist ~/Library/LaunchAgents/
+      launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.runcoach.app.plist
+
+  RunAtLoad starts it at login; KeepAlive brings it back if it dies.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.runcoach.app</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/run-coach/run_app.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/path/to/run-coach</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Don't spin if it's crash-looping on a bad config. -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/path/to/run-coach/app.log</string>
+    <key>StandardErrorPath</key>
+    <string>/path/to/run-coach/app.log</string>
+</dict>
+</plist>

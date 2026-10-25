@@ -12,6 +12,7 @@ node_modules/
 dist/
 .DS_Store
 sync.log
+app.log
 *.tsbuildinfo
 .claude/worktrees/
 

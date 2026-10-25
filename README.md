@@ -113,6 +113,33 @@ cd frontend && npm install && npm run build && cd ..
 cd frontend && npm run dev         # UI on :5173, proxies /api to :8000
 ```
 
+### Always-on (macOS)
+
+Started by hand, the app lives and dies with the terminal you launched it
+from. To have it simply be there at http://127.0.0.1:8000 after every login,
+install the LaunchAgent — `RunAtLoad` starts it, `KeepAlive` restarts it if it
+dies:
+
+```bash
+sed "s|/path/to/run-coach|$PWD|g" com.runcoach.app.plist > ~/Library/LaunchAgents/com.runcoach.app.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.runcoach.app.plist
+```
+
+It runs `run_app.sh`, which rebuilds `frontend/dist` before starting the API.
+That rebuild matters: FastAPI serves the UI out of `dist/`, so without it the
+bundle silently drifts behind the API and you get an old interface in front of
+current data with nothing to indicate it. A failed build is logged and skipped
+rather than fatal — the previous `dist/` keeps serving.
+
+Output goes to `app.log`. To check on it or stop it:
+
+```bash
+launchctl print gui/$(id -u)/com.runcoach.app      # state, pid, last exit code
+launchctl bootout gui/$(id -u)/com.runcoach.app    # stop and unload
+```
+
+Note it starts at *login*, not at boot, so the app is up once you've logged in.
+
 ### Keeping it up to date
 
 The dashboard has a sync button that runs all three ingestion legs. For an
@@ -121,6 +148,10 @@ unattended daily refresh, point cron at `sync_daily.sh`:
 ```bash
 0 6 * * * /path/to/run-coach/sync_daily.sh
 ```
+
+Be aware that cron silently skips its slot if the machine is asleep at the
+time, and never catches up — on a laptop that can mean missing most days. A
+LaunchAgent with `StartCalendarInterval` runs the missed job on wake instead.
 
 ---
 
