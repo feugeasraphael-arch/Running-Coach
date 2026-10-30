@@ -1,4 +1,6 @@
 # **Run Coach**
+## Outdated
+This project is partly rendered useless since Garmin launched its publicly available API.
 
 ## Technologies
 ## 📦 Technologies
